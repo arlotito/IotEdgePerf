@@ -2,7 +2,7 @@
     "$schema-version": "0.0.1",
     "description": "",
     "image": {
-        "repository": "arlotito.azurecr.io/edge-benchmark/edge-benchmark-source",
+        "repository": "arlotito/edge-sim-source",
         "tag": {
             "version": "0.3.9",
             "platforms": {

@@ -27,9 +27,7 @@
               "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
               "createOptions": "{}"
             },
-            "env": {
-              
-            }
+            "env": {}
           }
         },
         "modules": {
@@ -39,7 +37,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "${MODULES.source}",
+              "image": "arlotito/edge-sim-source:0.3.9-amd64",
               "createOptions": "{}"
             },
             "env": {
@@ -83,16 +81,16 @@
             "type": "docker",
             "env": {
               "ResourceId": {
-                "value": "$LOG_ANALYTICS_RESOURCE_ID"
+                "value": "/subscriptions/<YOURSHERE>/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/<YOURSHERE>"
               },
               "UploadTarget": {
                 "value": "AzureMonitor"
               },
               "LogAnalyticsWorkspaceId": {
-                "value": "$LOG_ANALYTICS_WORKSPACE_ID"
+                "value": "<YOURSHERE>"
               },
               "LogAnalyticsSharedKey": {
-                "value": "$LOG_ANALYTICS_SHARED_KEY"
+                "value": "<YOURSHERE>"
               },
               "ScrapeFrequencyInSecs": {
                 "value": "2"

@@ -27,9 +27,7 @@
               "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
               "createOptions": "{}"
             },
-            "env": {
-              
-            }
+            "env": {}
           }
         },
         "modules": {
@@ -39,7 +37,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "${MODULES.source}",
+              "image": "arlotito/edge-sim-source:0.3.9-amd64",
               "createOptions": "{}"
             },
             "env": {
@@ -47,7 +45,7 @@
                 "value": "10000"
               },
               "BURST_LENGTH": {
-                "value": "1500"
+                "value": "20000"
               },
               "BURST_WAIT": {
                 "value": "10000"
@@ -56,7 +54,7 @@
                 "value": "1"
               },
               "TARGET_RATE": {
-                "value": "50"
+                "value": "500"
               },
               "LOG_MSG": {
                 "value": "false"
@@ -70,8 +68,35 @@
               "MESSAGE_PAYLOAD_LENGTH": {
                 "value": "1024"
               },
-              "RATE_CALC_PERIOD": {
+              "PERIOD": {
                 "value": "5000"
+              }
+            }
+          },
+          "sink": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "arlotito/edge-sim-sink:0.4.4-amd64",
+              "createOptions": "{}"
+            },
+            "env": {
+              "LOG_MSG": {
+                "value": "false"
+              },
+              "LOG_BODY": {
+                "value": "false"
+              },
+              "PERIOD": {
+                "value": "5000"
+              },
+              "ECHO": {
+                "value": "true"
+              },
+              "INPUT_CSV": {
+                "value": "input1,input2"
               }
             }
           },
@@ -83,22 +108,22 @@
             "type": "docker",
             "env": {
               "ResourceId": {
-                "value": "$LOG_ANALYTICS_RESOURCE_ID"
+                "value": "/subscriptions/<YOURSHERE>/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/<YOURSHERE>"
               },
               "UploadTarget": {
                 "value": "AzureMonitor"
               },
               "LogAnalyticsWorkspaceId": {
-                "value": "$LOG_ANALYTICS_WORKSPACE_ID"
+                "value": "<YOURSHERE>"
               },
               "LogAnalyticsSharedKey": {
-                "value": "$LOG_ANALYTICS_SHARED_KEY"
+                "value": "<YOURSHERE>"
               },
               "ScrapeFrequencyInSecs": {
                 "value": "2"
               },
               "MetricsEndpointsCSV": {
-                "value": "http://edgeAgent:9600/metrics, http://edgeHub:9600/metrics, http://source:9600/metrics"
+                "value": "http://edgeAgent:9600/metrics, http://edgeHub:9600/metrics, http://sink:9600/metrics, http://source:9600/metrics"
               }
             },
             "status": "running",
@@ -112,7 +137,8 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {
-          "upstream": "FROM /messages/modules/source/outputs/* INTO $upstream"
+          "sourceToEcho1": "FROM /messages/modules/source/outputs/* INTO BrokeredEndpoint(\"/modules/sink/inputs/input1\")",
+          "upstream": "FROM /messages/modules/sink/outputs/* INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200
