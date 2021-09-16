@@ -50,8 +50,8 @@ Here's a simple test configuration and the related [deployment.test1.json](deplo
 ![](./images/simple-example.png)
 
 Here's the relevant section of [deployment.test1.json](deployment.test1.json), where you can adjust:
-* the source stream parameters as per here (rate, num of messages, ...) (full details in the [source module](./edgeSolution/modules/source) docs)
-* insert your log analytics workspace info in place of `<YOURSHERE>`
+* the source stream parameters (rate, num of messages, ...) (full details in the [source module](./edgeSolution/modules/source) docs)
+* your log analytics workspace info in place of `<YOURSHERE>`
 
 ```json
       "modules": {
