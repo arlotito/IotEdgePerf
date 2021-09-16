@@ -22,8 +22,55 @@ Parameters are set via ENV vars:
 | LOG_HIST | Log burst histogram to console | true or false |
 | RATE_CALC_PERIOD | Calculation period of rate (milliseconds) | Text or number |
 
+Example:
+```json
+"source": {
+  "version": "1.0",
+  "type": "docker",
+  "status": "running",
+  "restartPolicy": "always",
+  "settings": {
+    "image": "${MODULES.source}",
+    "createOptions": "{}"
+  },
+  "env": {
+    "START_WAIT": {
+      "value": "10000"
+    },
+    "BURST_LENGTH": {
+      "value": "1500"
+    },
+    "BURST_WAIT": {
+      "value": "10000"
+    },
+    "BURST_NUMBER": {
+      "value": "1"
+    },
+    "TARGET_RATE": {
+      "value": "50"
+    },
+    "LOG_MSG": {
+      "value": "false"
+    },
+    "LOG_BURST": {
+      "value": "true"
+    },
+    "LOG_HIST": {
+      "value": "false"
+    },
+    "MESSAGE_PAYLOAD_LENGTH": {
+      "value": "1024"
+    },
+    "RATE_CALC_PERIOD": {
+      "value": "5000"
+    }
+  }
+}
+```
+
 ## Docker image
-image URI: 
+image URI:
+* arlotito/edge-benchmark-source:0.3.9-amd64
 * arlotito/edge-benchmark-source:latest-amd64
 
 ## Message structure and sample
