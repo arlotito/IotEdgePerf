@@ -1,6 +1,10 @@
+Docker image available here: [arlotito/edge-sim-source](https://hub.docker.com/repository/docker/arlotito/edge-sim-source) 
+
+![for easy](https://img.shields.io/docker/v/arlotito/edge-sim-source)
+
 # Overview
 An IoT Edge module to generate parametric traffic:
-![](../../images/source-diagram.png)
+![](/images/source-diagram.png)
 
 ## Parameters
 Parameters are set via ENV vars:
