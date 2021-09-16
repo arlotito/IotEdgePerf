@@ -68,55 +68,22 @@ show logs
 show prometheus metrics
 
 ## Sample deployment manifest
-```bash
-{
-  "modulesContent": {
-    "$edgeAgent": {
-      "properties.desired": {
-        "schemaVersion": "1.0",
-        "runtime": {
-          "type": "docker",
-          "settings": {
-            "minDockerVersion": "v1.25",
-            "loggingOptions": "",
-            "registryCredentials": {
-              "arlotito": {
-                "username": "$CONTAINER_REGISTRY_USERNAME",
-                "password": "$CONTAINER_REGISTRY_PASSWORD",
-                "address": "$CONTAINER_REGISTRY_URL"
-              }
-            }
-          }
-        },
-        "systemModules": {
-          "edgeAgent": {
-            "type": "docker",
-            "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-agent:1.2",
-              "createOptions": "{}"
-            }
-          },
-          "edgeHub": {
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
-              "createOptions": "{}"
-            },
-            "env": {
-              
-            }
-          }
-        },
-        "modules": {
+Here's a simple test configuration and the related [deployment.test1.json](deployment.test1.json):
+![](./images/simple-example.png)
+
+Here's the relevant section of [deployment.test1.json](deployment.test1.json), where you can adjust:
+* the source stream parameters (rate, num of messages, ...) (full details in the [source module](./edgeSolution/modules/source) docs)
+* your log analytics workspace info in place of `<YOURSHERE>`
+
+```json
+      "modules": {
           "source": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "arlotito/edge-benchmark-source:latest-amd64",
+              "image": "arlotito/edge-sim-source:0.3.9-amd64",
               "createOptions": "{}"
             },
             "env": {
@@ -160,16 +127,16 @@ show prometheus metrics
             "type": "docker",
             "env": {
               "ResourceId": {
-                "value": "$LOG_ANALYTICS_RESOURCE_ID"
+                "value": "/subscriptions/<YOURSHERE>/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/<YOURSHERE>"
               },
               "UploadTarget": {
                 "value": "AzureMonitor"
               },
               "LogAnalyticsWorkspaceId": {
-                "value": "$LOG_ANALYTICS_WORKSPACE_ID"
+                "value": "<YOURSHERE>"
               },
               "LogAnalyticsSharedKey": {
-                "value": "$LOG_ANALYTICS_SHARED_KEY"
+                "value": "<YOURSHERE>"
               },
               "ScrapeFrequencyInSecs": {
                 "value": "2"
@@ -184,28 +151,4 @@ show prometheus metrics
           }
         }
       }
-    },
-    "$edgeHub": {
-      "properties.desired": {
-        "schemaVersion": "1.0",
-        "routes": {
-          "upstream": "FROM /messages/modules/source/outputs/* INTO $upstream"
-        },
-        "storeAndForwardConfiguration": {
-          "timeToLiveSecs": 7200
-        }
-      }
-    }
-  }
-}
-```
-
-The .env file:
-```bash
-CONTAINER_REGISTRY_USERNAME=<..>
-CONTAINER_REGISTRY_PASSWORD=<..>
-CONTAINER_REGISTRY_URL=<..>
-LOG_ANALYTICS_RESOURCE_ID=<..>
-LOG_ANALYTICS_WORKSPACE_ID=<..>
-LOG_ANALYTICS_SHARED_KEY=<..>
 ```
