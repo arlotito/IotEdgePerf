@@ -1,0 +1,39 @@
+Query to calculate:
+* ingestion latency
+* ingestion rate
+
+```
+WITH 
+stage1 as
+(
+    SELECT
+        IoTHub.EnqueuedTime AS IoTHubEnqueuedTime,
+        EventEnqueuedUtcTime AS ASAEnqueuedTime,
+        IoTHub.ConnectionDeviceId as device_id,
+        counter,
+        total,
+        ts AS device_epoch,
+        DATEADD(millisecond, ts, '1970-01-01T00:00:00Z') AS device_ts
+    FROM hub 
+),
+stage2 as
+(
+    SELECT
+        device_id,
+        DATEDIFF (millisecond, device_ts, IoTHubEnqueuedTime) AS Latency
+    FROM stage1 
+)
+
+SELECT
+    System.Timestamp() t,
+    device_id,
+    COUNT(*)/5 AS estimatedRate,
+    AVG(Latency) AS avgLatency,
+    MIN(Latency) AS minLatency,
+    MAX(Latency) AS maxLatency 
+INTO
+    eventhub
+FROM
+    stage2
+GROUP BY device_id, TumblingWindow(second, 5)
+```

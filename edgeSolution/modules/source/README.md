@@ -1,54 +1,70 @@
-A framework to simulate dataflows in an IoT Edge instance and benchmark:
-* the local brokering performance (rates)
-* the upstream rate and end-2-end latency
+# Overview
+An IoT Edge module to generate parametric traffic:
+![](../../images/source-diagram.png)
 
-![](./images/architecture.png)
+## Parameters
+Parameters are set via ENV vars:
 
-The framework includes:
+| Variable | Description | Type |
+|----------|:-------------:|------:|
+| BURST_LENGTH | Number of messages in a burst | Text or number | 
+| BURST_WAIT | Wait time (milliseconds) between bursts | Text or number |
+| BURST_NUMBER | Number of bursts to be sent | Text or number |
+| TARGET_RATE | Target rate (msg/s) within the burst | Text or number |
+| MESSAGE_PAYLOAD_LENGTH | Payload size (will be filled with a random string of given length) | Text or number |
+| START_WAIT | Wait before starting (milliseconds) | Text or number |
+| LOG_MSG | Log each message stats to console | true or false |
+| LOG_BURST | Log each burst stats to console | true or false |
+| LOG_HIST | Log burst histogram to console | true or false |
+| RATE_CALC_PERIOD | Calculation period of rate (milliseconds) | Text or number |
 
-* an edge solution with:
-  * a [source module](./edgeSolution/modules/source) (1), to create the source message stream
-  * a [sink module](./edgeSolution/modules/sink) (2), to consume the source message stream and/or propagate it along a pipeline by optionally echoing the input to the output
-  * a metrics collector (3), to collect the metrics (edgehub and edgeagent built-in, source and sink modules) and send them to Azure Monitor
-* an [ASA query](./asa/) (4), to measure the ingestion latency and rate
-* a [console application](./console/) (5), to receive the latency/rate from the ASA job
-* a [Jupyter notebook](./jupyter/) (6), as an alternative to the console application, to collect and visualize relevant metrics 
+## Docker image
+image URI: 
+* arlotito/edge-benchmark-source:latest-amd64
 
-Both the source and sink modules measure the actual rate and other stats that are emitted via:
-* logs
-* prometheus metrics (for integration with Azure Monitor)
-* messages
+## Message structure and sample
+```csharp
+    public class MessageDataPoint
+    {
+        // timestamp
+        public long ts;
+        
+        // msg counter
+        public int counter;
+        
+        // total msg to be sent
+        public int total;
 
-This framework is useful for:
-* measuring max rates and latency vs HW specs (or VM size)
-* sizing HW (or VM) to meet the target rate/latency
-* optimizing rates/latency by fine-tuning message batching, number of modules/inputs/outputs, ...
-* performing long-run tests against target traffic load
-* understanding how rate/latency/queue are related
-
-## Getting started
-Pre-requisites:
-* IoT HUB, log analytics workspace, ASA job, event hub
-
-Then simply run:
-```bash
-curl -L https://raw.githubusercontent.com/arlotito/vm-iotedge-provision/dev/scripts/vmedge.sh | bash -s -- \
-    -s Standard_DS3_v2 \
-    -g edge-benchmark-vm-rg \
-    -e 1.2 \
-    -n edge-benchmark-hub \
-    -d ./test.deployment.json
+        // payload (random content)
+        public string payload;
+    }
 ```
 
-It will:
-* create a VM of size 'Standard_DS3_v2' in resource group 'edge-benchmark-vm-rg'
-* will install IoT Edge 1.2 
-* register an edge identity on the 'edge-benchmark-hub' IoT HUB and will configure the IoT Edge instance to use it
-* will eventually deploy the 'test1.json' configuration, which is the edge deployment manifest with the desired source/sink modules pipeline and related parameters as ENV variables.
+Below a sample message with
+* BURST_LENGTH = 1500
+* MESSAGE_PAYLOAD_LENGTH = 1024
 
-Here's a simple test configuration and the related 'test.deployment.json':
-![](./images/simple-example.png)
 ```json
+{
+  "body": {
+    "ts": 1631714603334,
+    "counter": 1366,
+    "total": 1500,
+    "payload": "5kF5Q3QK1L5yPlbBOqNLoYIXm1THfYrQGzoo1QvnzPJOCkOCdLDmjFcgbrSYjJpdeosa6wK84kVZO4VCnQoUUErAWHNJ7WDqjquX1xFqBFr8uCShWQvTeVIZ7rDyjAAihoziK7KzL8SPXsQTzpxrltLOhUaJuRGAEJbFNtXYG5HgC3CObu83NT7xclAzhAE31SKOQLGGSYlpmoMoSLsASMxvLomlsh0F1Optsy8Pn2lysSLyYWhWRElofZCmieXvifyX9c6dNdWal8D3dyMW9dywnAOSwVqIfzQMdxy6aDJyrLChWIIuRAvEqBu8Nnr1wN4vr0Zq9Q66UAEc8r5nN61eEMgcC0swVSBdQQzgscuBEzuq6SAgrEozWZrfT7nJhJkC8kLr2Z5uMzaOczfuzMERoMH0jTMuykd5PrsWGToSI3ng9dDec3TVESYwdUHiMK6lWf9uHJnghwIuik1FQsS5QH06T52vLFF87BKeeTWTQxxSJnN2dCSe2BUOoCaLQ1VcqKxhaXl7W9odUixps9SJxlG5r5zc2KCZbVl9zqcGbVI2W04GOudQiMoFE1zfhJEL6PB87y0ChLscdNj0BtNHrv0Pqf5806jSQ66Hz5Ja4asXeMm0S9ey57dKYvSb21MkmaLgRbBFjwMRDcvd3Ep0cuWSdvsDnrhCOHvEAGj08YOJvMH5AyiyMVI1D3Dfs7c2OJC5rrcxfy1EgMgQnxDyJt0293AHCDIA6W4mJMNSWvTXdEV0Ww154nteSJ5yrVubq0HKR4GbjucXadY5iJuQLMGSmaTAQZlAB1qn6KibqaWKLVEzvAPikePduzh1lGLJJbWiwv9XkSjv06GRVdPQKCZhlM2Hnr0jPMAu9fD9A17S4enysQgH149GBz7j31t3bAgo5WR0aPPSFHmHjEZXLtsUN3sKidGJHE04792V8prloqB3Mz9ycWssRLaBnHR6JGKBRsKkLDZfBGpg2y7teRqvVHmvi1s0YubigAmdpZnY7NqKg3JyKic2ZZpJ"
+  },
+  "enqueuedTime": "Wed Sep 15 2021 16:03:23 GMT+0200 (Central European Summer Time)",
+  "properties": {}
+}
+```
+
+## Sample output
+show logs
+
+## Prometheus metrics
+show prometheus metrics
+
+## Sample deployment manifest
+```bash
 {
   "modulesContent": {
     "$edgeAgent": {
@@ -189,8 +205,3 @@ LOG_ANALYTICS_RESOURCE_ID=<..>
 LOG_ANALYTICS_WORKSPACE_ID=<..>
 LOG_ANALYTICS_SHARED_KEY=<..>
 ```
-
-
- 
-
-
