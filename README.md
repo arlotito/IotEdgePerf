@@ -12,7 +12,12 @@ The framework includes:
   * a metrics collector (3), to collect the metrics (edgehub and edgeagent built-in, source and sink modules) and send them to Azure Monitor
 * an [ASA query](./asa/) (4), to measure the ingestion latency and rate
 * a [console application](./console/) (5), to receive the latency/rate from the ASA job
-* a [Jupyter notebook](./jupyter/) (6), as an alternative to the console application, to collect and visualize relevant metrics 
+* a [Jupyter notebook](./jupyter/) (6), as an alternative to the console application, to collect and visualize relevant metrics
+
+TO DO: 
+* an ARM template with ASA job + query, Event HUB? 
+* I assume that IoT HUB would be already in place. Maybe we need only CLI to configure the routing?
+* What about the log analytics workspace? 
 
 Both the source and sink modules measure the actual rate and other stats that are emitted via:
 * logs
