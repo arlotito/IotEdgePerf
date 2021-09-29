@@ -2,3 +2,4 @@ local/
 .env
 keys/
 config/
+act.secrets

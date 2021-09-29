@@ -1,0 +1,11 @@
+{
+    "variables": [{
+            "name": "CONTAINER_REGISTRY_PATH",
+            "value": "ghcr.io/renehezser/edge-simulation-framework"
+        },
+        {
+            "name": "CONTAINER_REGISTRY_USER",
+            "value": "ReneHezser"
+        }
+    ]
+}

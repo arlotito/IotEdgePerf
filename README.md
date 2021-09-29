@@ -131,6 +131,7 @@ Here's the relevant section of [deployment.test1.json](deployment.test1.json), w
       }
 ```
 
- 
-
-
+## Image creation
+The images are created automatically by GitHub Actions. 
+### local image creation
+You can execute the workflow locally by using [act](https://github.com/nektos/act). To upload the images to the GitHub container registry, you'll need to create a new Personal Access Token (PAT), store that in a local file *act.secrets* with the line ```GHCRPAT=<your personal token>``` and run ```act --secret-file act.secrets -s github.run_number=1```.
