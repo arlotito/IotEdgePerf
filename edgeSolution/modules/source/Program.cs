@@ -102,6 +102,7 @@ namespace source
 
             int msgCnt = 0;
             int burstCnt = 0;
+            int totalMessageCount = 0;
 
             double waitBeforeNextMessage = 0; //if 0, there won't be any delay
             if (options.targetRate > 0)
@@ -153,6 +154,7 @@ namespace source
                 //Console.WriteLine($"sending packet: {counter}, inc/burst: {packet}/{burst}, size: {size}, delay ms before next: {interpacket_interval_ms}, delay ms vs expected: {delay_ms}...");
                 await moduleClient.SendEventAsync(ModuleOutput, message);
                 msgCnt++;
+                totalMessageCount++;
                 stopwatch.Stop();
 
                 double elapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds; //this has the same precision as ElapsedTicks
@@ -160,7 +162,7 @@ namespace source
 
                 double burstElapsedMilliseconds = burstStopwatch.Elapsed.TotalMilliseconds;
 
-                rateMeter.Update(msgCnt, "output1");
+                rateMeter.Update(totalMessageCount, "output1");
 
                 if (options.logMsg)
                 {

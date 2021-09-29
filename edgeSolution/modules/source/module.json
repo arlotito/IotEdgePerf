@@ -2,9 +2,9 @@
     "$schema-version": "0.0.1",
     "description": "",
     "image": {
-        "repository": "arlotito/edge-sim-source",
+        "repository": "$ACR_ADDRESS/edge-sim-source",
         "tag": {
-            "version": "0.3.9",
+            "version": "0.3.10",
             "platforms": {
                 "amd64": "./Dockerfile.amd64", 
                 "amd64.debug": "./Dockerfile.amd64.debug",

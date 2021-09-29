@@ -8,7 +8,13 @@
           "settings": {
             "minDockerVersion": "v1.25",
             "loggingOptions": "",
-            "registryCredentials": {}
+            "registryCredentials": {
+              "myRegistryName": {
+                "username": "$ACR_USER",
+                "password": "$ACR_PASSWORD",
+                "address": "$ACR_ADDRESS"
+              }
+            }
           }
         },
         "systemModules": {
@@ -70,7 +76,7 @@
               "MESSAGE_PAYLOAD_LENGTH": {
                 "value": "1024"
               },
-              "PERIOD": {
+              "RATE_CALC_PERIOD": {
                 "value": "5000"
               }
             }
@@ -110,16 +116,16 @@
             "type": "docker",
             "env": {
               "ResourceId": {
-                "value": "/subscriptions/dcb5e104-57f5-4eb4-8d8f-08a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/arturol76-s1-benchmark"
+                "value": "$LOG_ANALYTICS_RESOURCE_ID"
               },
               "UploadTarget": {
                 "value": "AzureMonitor"
               },
               "LogAnalyticsWorkspaceId": {
-                "value": "1054c1b0-f063-40a7-823e-91dac02fbabc"
+                "value": "$LOG_ANALYTICS_WORKSPACE_ID"
               },
               "LogAnalyticsSharedKey": {
-                "value": "EKa3mz2+Shi+PrJ7dxFSxM15aHirlOEuYI7sgOx0Duoh4EgIeuF7wAOzCks+CpHqVn1Znb8zVIG7OMsXuwbrTQ=="
+                "value": "$LOG_ANALYTICS_SHARED_KEY"
               },
               "ScrapeFrequencyInSecs": {
                 "value": "2"
