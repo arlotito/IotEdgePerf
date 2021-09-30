@@ -14,6 +14,8 @@ namespace source
     using Prometheus;
     using edgeBenchmark;
 
+    using System.Collections.Generic;
+
     public class SourceOptions
     {
         public int burstLength;
@@ -21,6 +23,8 @@ namespace source
         public int burstNumber;
         public int targetRate;
         public int payloadLength;
+
+        public int batchSize;
         public bool logMsg;
         public bool logBurst;
         public bool logHist;
@@ -55,9 +59,11 @@ namespace source
             burstNumber = Int32.Parse(GetEnv("BURST_NUMBER", "Burst number [burst]"));
             targetRate = Int32.Parse(GetEnv("TARGET_RATE", "Target rate [msg/s]"));
             payloadLength = Int32.Parse(GetEnv("MESSAGE_PAYLOAD_LENGTH", "Message payload length [bytes]"));
+            batchSize = Int32.Parse(GetEnv("BATCH_SIZE", "Size of the batch sent using the SendEventBatchAsync'"));
             logMsg = Boolean.Parse(GetEnv("LOG_MSG", "Log each message"));
             logBurst = Boolean.Parse(GetEnv("LOG_BURST", "Log stats of each burst"));
             logHist = Boolean.Parse(GetEnv("LOG_HIST", "Log histograms"));
+            
 
             waitBeforeStart = Int32.Parse(GetEnv("START_WAIT", "Wait before starting [ms]"));
             rateCalcPeriod = Int32.Parse(GetEnv("RATE_CALC_PERIOD", "Calculation period of rate [ms]")); //ms
@@ -126,35 +132,52 @@ namespace source
                 return;
             }
 
+            if (options.batchSize < 1)
+            {
+                Console.WriteLine("batchSize must be >= 1.");
+                return;
+            }
+
             while (true)
             {
                 var start = burstStopwatch.Elapsed.TotalMilliseconds; // for rate adjustment
                 var waitUntil = start + waitBeforeNextMessage;
+                var messageBatch = new List<Message>();
 
                 if (msgCnt == 0)
                     Console.WriteLine("{0},text,sending burst...", DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK"));
 
-                // IMPORTANT: do not move this outside of the loop, otherwise you'll get an exception
-                var payload = new MessageDataPoint
+                for (int k=0; k<options.batchSize; k++)
                 {
-                    ts = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-                    counter = msgCnt + 1,
-                    total = options.burstLength,
-                    payload = RandomString(options.payloadLength)
-                };
-                string messageString = "";
-                messageString = JsonConvert.SerializeObject(payload);
-                var message = new Message(Encoding.ASCII.GetBytes(messageString));
+                    // IMPORTANT: do not move this outside of the loop, otherwise you'll get an exception
+                    var payload = new MessageDataPoint
+                    {
+                        ts = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+                        counter = msgCnt + 1,
+                        total = options.burstLength,
+                        payload = RandomString(options.payloadLength)
+                    };
+                    string messageString = "";
+                    messageString = JsonConvert.SerializeObject(payload);
+                    var message = new Message(Encoding.ASCII.GetBytes(messageString));
 
+                    messageBatch.Add(message);
+
+                    msgCnt += 1;
+                    totalMessageCount += 1;
+                }
+                
                 // An IoT hub can filter on these properties without access to the message body.  
                 //message.Properties.Add("<key>", value);
 
                 // Send the telemetry message
                 stopwatch.Restart();
                 //Console.WriteLine($"sending packet: {counter}, inc/burst: {packet}/{burst}, size: {size}, delay ms before next: {interpacket_interval_ms}, delay ms vs expected: {delay_ms}...");
-                await moduleClient.SendEventAsync(ModuleOutput, message);
-                msgCnt++;
-                totalMessageCount++;
+                
+                if (messageBatch.Count == 1)
+                    await moduleClient.SendEventAsync(ModuleOutput, messageBatch[0]);
+                else
+                    await moduleClient.SendEventBatchAsync(ModuleOutput, messageBatch);
                 stopwatch.Stop();
 
                 double elapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds; //this has the same precision as ElapsedTicks
