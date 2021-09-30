@@ -64,6 +64,9 @@
               "TARGET_RATE": {
                 "value": "50"
               },
+              "BATCH_SIZE": {
+                "value": "1"
+              },
               "LOG_MSG": {
                 "value": "false"
               },

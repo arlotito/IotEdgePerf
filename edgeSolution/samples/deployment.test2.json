@@ -68,6 +68,9 @@
               "MESSAGE_PAYLOAD_LENGTH": {
                 "value": "1024"
               },
+              "BATCH_SIZE": {
+                "value": "1"
+              },
               "PERIOD": {
                 "value": "5000"
               }
