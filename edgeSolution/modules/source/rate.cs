@@ -38,7 +38,7 @@ namespace edgeBenchmark
                 elapsed = now - prevElapsed;
                 prevElapsed = now;
                 
-                delta = Math.Abs(currValue - prevValue);
+                delta = currValue - prevValue;
                 rate = delta / elapsed * 1000;
                 prevValue = currValue;
             }
@@ -128,13 +128,13 @@ namespace edgeBenchmark
                 double rate = ch.Value.Calculate();
                 
                 //send only changes
-                if (rate != prevValue)
-                {
+                //if (rate != prevValue)
+                //{
                     logString += string.Format("," + ch.Key + "," + ch.Value.ToString());
                     RateMetric.WithLabels(deviceId, instanceNumber, iothubHostname, moduleId, "individual", ch.Key).Set(rate);
 
                     somethingToShow = true;
-                }
+                //}
                 
                 prevValue = rate;
             }

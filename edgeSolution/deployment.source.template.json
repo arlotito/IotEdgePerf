@@ -8,7 +8,13 @@
           "settings": {
             "minDockerVersion": "v1.25",
             "loggingOptions": "",
-            "registryCredentials": {}
+            "registryCredentials": {
+              "myRegistryName": {
+                "username": "$ACR_USER",
+                "password": "$ACR_PASSWORD",
+                "address": "$ACR_ADDRESS"
+              }
+            }
           }
         },
         "systemModules": {
@@ -47,13 +53,13 @@
                 "value": "10000"
               },
               "BURST_LENGTH": {
-                "value": "1500"
+                "value": "500"
               },
               "BURST_WAIT": {
-                "value": "10000"
+                "value": "5000"
               },
               "BURST_NUMBER": {
-                "value": "1"
+                "value": "2"
               },
               "TARGET_RATE": {
                 "value": "50"
@@ -71,7 +77,7 @@
                 "value": "1024"
               },
               "RATE_CALC_PERIOD": {
-                "value": "5000"
+                "value": "1000"
               }
             }
           },
@@ -95,7 +101,7 @@
                 "value": "$LOG_ANALYTICS_SHARED_KEY"
               },
               "ScrapeFrequencyInSecs": {
-                "value": "2"
+                "value": "1"
               },
               "MetricsEndpointsCSV": {
                 "value": "http://edgeAgent:9600/metrics, http://edgeHub:9600/metrics, http://source:9600/metrics"
