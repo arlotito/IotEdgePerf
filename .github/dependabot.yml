@@ -8,23 +8,23 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: docker
-    directory: /modules/sink/
+    directory: /edgeSolution/modules/sink/
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
   - package-ecosystem: docker
-    directory: /modules/source/
+    directory: /edgeSolution/modules/source/
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
 
   - package-ecosystem: nuget
-    directory: /modules/sink/
+    directory: /edgeSolution/modules/sink/
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
   - package-ecosystem: nuget
-    directory: /modules/source/
+    directory: /edgeSolution/modules/source/
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

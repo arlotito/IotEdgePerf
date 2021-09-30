@@ -19,21 +19,22 @@ jobs:
     - name: Set Variable
       uses: deep-mm/set-variables@v1.0
       with:
-        variableFileName: 'action_variables'
+        variableFileName: 'actions_variables'
 
 
     # push image to registry only if build on GitHub and not a pull_request
     - name: "Set push from Context"
       env:
-        PUSH_VAR: ${{ github.event_name != 'pull_request' && !env.ACT }}
+        PUSH_VAR: ${{ github.event_name != 'pull_request' && !env.ACT || env.CONTAINER_REGISTRY_FORCE_PUSH == 'true' }}
       run: |
         if ${PUSH_VAR} == true; then
-          echo "::set-env name=push::true"
-          echo "push set to true"
+          echo 'force_push=true' >> $GITHUB_ENV
         else
-          echo "::set-env name=push::false"
-          echo "push set to false"
+          echo "force_push=false" >> $GITHUB_ENV
         fi
+    - name: "env.force_push is set to"
+      run: |
+        echo "${{ env.force_push }}"
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
@@ -41,34 +42,52 @@ jobs:
       uses: docker/setup-buildx-action@v1
 
     - name: Docker Login
-      if: env.push
+      if: ${{ env.force_push }} == true
       uses: docker/login-action@v1.9.0
       with:
         registry: ghcr.io
         username: ${{ env.CONTAINER_REGISTRY_USER }}
-        password: ${{ secrets.GHCRPAT }}
+        password: ${{ secrets.GITHUB_TOKEN }}
         logout: true
+
+    # tags for the images
+    - name: Docker meta - sink
+      id: meta-sink
+      uses: docker/metadata-action@v3
+      with:
+        # list of Docker images to use as base name for tags
+        images: ${{ env.CONTAINER_REGISTRY_PATH }}/sink
+        flavor: latest=true
+        # generate Docker tags based on the GitHub run number (for unique identification) and the knxd version
+        tags: |
+          type=raw,value=${{ github.run_number }}
+    - name: Docker meta - source
+      id: meta-source
+      uses: docker/metadata-action@v3
+      with:
+        # list of Docker images to use as base name for tags
+        images: ${{ env.CONTAINER_REGISTRY_PATH }}/source
+        flavor: latest=true
+        # generate Docker tags based on the GitHub run number (for unique identification) and the knxd version
+        tags: |
+          type=raw,value=${{github.run_number}}
 
     - name: Build and push Docker image "sink"
       uses: docker/build-push-action@v2
       with:
-        context: ./modules/sink/
-        file: ./modules/sink/Dockerfile
+        context: ./edgeSolution/modules/sink/
+        file: ./edgeSolution/modules/sink/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
-        push: ${{ env.push }}
-        tags: |
-          ${{ env.CONTAINER_REGISTRY_PATH }}/sink:${{ github.run_number }}
-          ${{ env.CONTAINER_REGISTRY_PATH }}/sink:latest
+        push: ${{ env.force_push }}
+        tags: ${{ steps.meta-sink.outputs.tags }}
         labels: org.opencontainers.image.source https://github.com/arlotito/edge-simulation-framework
 
     - name: Build and push Docker image "source"
       uses: docker/build-push-action@v2
       with:
-        context: ./modules/source/
-        file: ./modules/source/Dockerfile
+        context: ./edgeSolution/modules/source/
+        file: ./edgeSolution/modules/source/Dockerfile
         platforms: linux/amd64,linux/arm64,linux/arm/v7
-        push: ${{ env.push }}
-        tags: |
-          ${{ env.CONTAINER_REGISTRY_PATH }}/source:${{ github.run_number }}
-          ${{ env.CONTAINER_REGISTRY_PATH }}/source:latest
+        push: ${{ env.force_push }}
+        tags: ${{ steps.meta-source.outputs.tags }}
         labels: org.opencontainers.image.source https://github.com/arlotito/edge-simulation-framework

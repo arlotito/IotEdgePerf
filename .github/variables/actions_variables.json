@@ -6,6 +6,10 @@
         {
             "name": "CONTAINER_REGISTRY_USER",
             "value": "ReneHezser"
+        },
+        {
+            "name": "CONTAINER_REGISTRY_FORCE_PUSH",
+            "value": "false"
         }
     ]
 }
