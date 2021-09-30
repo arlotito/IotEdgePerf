@@ -16,6 +16,7 @@ Parameters are set via ENV vars:
 | BURST_NUMBER | Number of bursts to be sent | Text or number |
 | TARGET_RATE | Target rate (msg/s) within the burst | Text or number |
 | MESSAGE_PAYLOAD_LENGTH | Payload size (will be filled with a random string of given length) | Text or number |
+| BATCH_SIZE | If > 1, it will create a batch of messages and send it using the SendEventBatchAsync() | Text or number |
 | START_WAIT | Wait before starting (milliseconds) | Text or number |
 | LOG_MSG | Log each message stats to console | true or false |
 | LOG_BURST | Log each burst stats to console | true or false |
@@ -60,6 +61,9 @@ Example:
     },
     "MESSAGE_PAYLOAD_LENGTH": {
       "value": "1024"
+    },
+    "BATCH_SIZE": {
+      "value": "1"
     },
     "RATE_CALC_PERIOD": {
       "value": "5000"
