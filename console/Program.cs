@@ -187,6 +187,7 @@ namespace eh_consumer
 
                         Console.WriteLine("\n------\nTest completed. All messages received.\n");
 
+                        Console.WriteLine($"Run ID: {msg.runId}");
                         Console.WriteLine($"First message ts: {firstMessageDT.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
                         Console.WriteLine($"Last message ts: {lastMessageDT.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
                         Console.WriteLine($"Delta ts [s]: {delta.TotalSeconds}");

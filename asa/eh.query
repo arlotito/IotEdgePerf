@@ -7,6 +7,7 @@ stage1 as
         IoTHub.ConnectionDeviceId as device_id,
         counter,
         total,
+        runId,
         ts AS device_epoch,
         DATEADD(millisecond, ts, '1970-01-01T00:00:00Z') AS device_ts
     FROM hub 
@@ -17,6 +18,7 @@ stage2 as
         device_id,
         counter,
         total,
+        runId,
         device_ts,
         DATEDIFF (millisecond, device_ts, IoTHubEnqueuedTime) AS Latency
     FROM stage1 
@@ -24,7 +26,7 @@ stage2 as
 
 SELECT
     System.Timestamp() t,
-    device_id,
+    runId,
     MIN(device_ts) AS firstMsgTs,
     MAX(device_ts) AS lastMsgTs,
     MAX(counter) AS counter,
@@ -38,4 +40,4 @@ INTO
     eventhub
 FROM
     stage2
-GROUP BY device_id, TumblingWindow(second, 5)
+GROUP BY runId, TumblingWindow(second, 5)
