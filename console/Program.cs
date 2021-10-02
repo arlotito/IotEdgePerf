@@ -1,29 +1,75 @@
 ﻿
-// https://github.com/Azure-Samples/azure-iot-samples-csharp/blob/master/iot-hub/Quickstarts/ReadD2cMessages/Program.cs
 
-// This application uses the Azure Event Hubs Client for .NET
-// For samples see: https://github.com/Azure/azure-sdk-for-net/blob/master/sdk/eventhub/Azure.Messaging.EventHubs/samples/README.md
-// For documentation see: https://docs.microsoft.com/azure/event-hubs/
-
-using Azure.Messaging.EventHubs.Consumer;
 using System;
 using System.Collections.Generic;
 using System.Text;
+
+using System.Timers;
+
 using System.Threading;
 using System.Threading.Tasks;
+
 using Newtonsoft.Json;
-using RateMeter;
 using Toolbox;
+
+using Azure.Messaging.EventHubs.Consumer;
+
+using CommandLine;
 
 
 namespace eh_consumer
 {
     class Program
     {
-        private static string EventHubConnectionString = "Endpoint=sb://arlotitoedgestresstest.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=2azS3G/SUgQUh6zxRZYQKYqLDj9bzePIBoUbHcaVxbg=";
-        private static string EventHubName = "rate";
+        
+        private static string EventHubConnectionString = "";
+        private static string EventHubName = "";
+        private static double TimeoutInterval;
+
+        private static System.Timers.Timer timeout;
+
+        private static void GetConfig(string[] args)
+        {
+            Parameters _parameters = new Parameters();
+
+            // Parse application parameters
+            ParserResult<Parameters> result = Parser.Default.ParseArguments<Parameters>(args)
+                .WithParsed(parsedParams =>
+                {
+                    _parameters = parsedParams;
+                })
+                .WithNotParsed(errors =>
+                {
+                    Environment.Exit(1);
+                });
+
+            EventHubName = Environment.GetEnvironmentVariable("EH_NAME");
+            if (!string.IsNullOrEmpty(_parameters.EventHubName))
+            {
+                EventHubName = _parameters.EventHubName;         
+            }
+
+            EventHubConnectionString = Environment.GetEnvironmentVariable("EH_CONN_STRING");
+            if (!string.IsNullOrEmpty(_parameters.EventHubConnectionString))
+            {
+                EventHubConnectionString = _parameters.EventHubConnectionString;         
+            }
+
+            // check if EH info is provided
+            if (string.IsNullOrWhiteSpace(EventHubConnectionString)
+                || string.IsNullOrWhiteSpace(EventHubName))
+            {
+                Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(result, null, null));
+                Environment.Exit(1);
+            }
+            
+            double.TryParse(_parameters.Timeout, out TimeoutInterval);
+        }
+        
         public static async Task Main(string[] args)
         {
+            GetConfig(args);            
+
             Console.WriteLine("Reading events... Ctrl-C to exit.\n");
 
             // Set up a way for the user to gracefully shutdown
@@ -32,8 +78,11 @@ namespace eh_consumer
             {
                 eventArgs.Cancel = true;
                 cts.Cancel();
-                Console.WriteLine("Exiting...");
+                Console.WriteLine("\n\nExiting...");
             };
+
+            // start timeout
+            SetTimeout(TimeoutInterval, cts);
 
             // Run the sample
             await ReceiveMessagesFromDeviceAsync(cts.Token);
@@ -41,38 +90,51 @@ namespace eh_consumer
             Console.WriteLine("Cloud message reader finished.");
         }
 
+        private static void SetTimeout(double interval, CancellationTokenSource cts)
+        {
+            // Create a timer with a two second interval.
+            timeout = new System.Timers.Timer(interval);
+            // Hook up the Elapsed event for the timer. 
+            timeout.Elapsed += (sender, args) => OnTimeout(cts);
+            timeout.AutoReset = false;
+            timeout.Enabled = true;
+        }
+
+        private static void OnTimeout(CancellationTokenSource cts)
+        {
+            Console.WriteLine("Timeout elapsed.");
+            cts.Cancel();
+        }
+
         // Asynchronously create a PartitionReceiver for a partition and then start
         // reading any messages sent from the simulated client.
         private static async Task ReceiveMessagesFromDeviceAsync(CancellationToken ct)
         {
-            // Create the consumer using the default consumer group using a direct connection to the service.
-            // Information on using the client with a proxy can be found in the README for this quick start, here:
-            // https://github.com/Azure-Samples/azure-iot-samples-csharp/tree/master/iot-hub/Quickstarts/ReadD2cMessages/README.md#websocket-and-proxy-support
             await using var consumer = new EventHubConsumerClient(
-                EventHubConsumerClient.DefaultConsumerGroupName,
-                EventHubConnectionString,
-                EventHubName);
+                    EventHubConsumerClient.DefaultConsumerGroupName,
+                    EventHubConnectionString,
+                    EventHubName);
 
             Console.WriteLine("Listening for messages on all partitions.");
 
             bool logRaw = false;
-
-            StatsCalculator stats = new StatsCalculator();
-
+            
             try
             {
-                // Begin reading events for all partitions, starting with the first event in each partition and waiting indefinitely for
-                // events to become available. Reading can be canceled by breaking out of the loop when an event is processed or by
-                // signaling the cancellation token.
-                //
-                // The "ReadEventsAsync" method on the consumer is a good starting point for consuming events for prototypes
-                // and samples. For real-world production scenarios, it is strongly recommended that you consider using the
-                // "EventProcessorClient" from the "Azure.Messaging.EventHubs.Processor" package.
-                //
-                // More information on the "EventProcessorClient" and its benefits can be found here:
-                //   https://github.com/Azure/azure-sdk-for-net/blob/master/sdk/eventhub/Azure.Messaging.EventHubs.Processor/README.md
+                StatsCalculator statsRate = new StatsCalculator();
+                StatsCalculator statsLatency = new StatsCalculator();
 
-                await foreach (PartitionEvent partitionEvent in consumer.ReadEventsAsync())
+                DateTime startFromTime = DateTime.Now;
+                DateTime firstMessageDT = new DateTime();
+                DateTime lastMessageDT = new DateTime();
+                
+                //Console.WriteLine(DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK"));
+
+                int count = 0;
+
+                Console.WriteLine("timestamp,counter,total,messagesCount,asaEstimatedRate,asaAvgLatency,asaMinLatency,asaMaxLatency,statsAvgRate,statsMinRate,statsMaxRate");
+
+                await foreach (PartitionEvent partitionEvent in consumer.ReadEventsAsync(ct))
                 {
                     //Console.WriteLine($"\nMessage received on partition {partitionEvent.Partition.PartitionId}:");
 
@@ -81,24 +143,59 @@ namespace eh_consumer
                     if (logRaw)
                         Console.WriteLine(data);
 
-                    var msg = JsonConvert.DeserializeObject<RateMeter.Message>(data);
-                    
-                    stats.Append(msg.estimatedRate);
-                    Console.WriteLine("{0}, {1}, {2}", stats.avg, stats.min, stats.max);
+                    var msg = JsonConvert.DeserializeObject<AsaJob.Message>(data);
 
-                    /*
-                    Console.WriteLine("\tApplication properties (set by device):");
-                    foreach (KeyValuePair<string, object> prop in partitionEvent.Data.Properties)
+                    //DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")
+
+                    //do not show old messages
+                    DateTime t = DateTime.Parse(msg.t);
+
+                    if (t >= startFromTime)
                     {
-                        PrintProperties(prop);
+                        if (count == 0)
+                        {
+                            firstMessageDT = DateTime.Parse(msg.firstMsgTs);
+                            //Console.WriteLine($"** First message ts: {firstMessageDT.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
+                        }
+
+                        count++;
+                        timeout.Stop();
+                        timeout.Start();
+                        
+                        statsRate.Append(msg.estimatedRate);
+                        statsLatency.Append(msg.avgLatency);
+
+                        Console.WriteLine("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10}", 
+                            t.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK"),
+                            msg.counter, msg.total, msg.messagesCount,
+                            msg.estimatedRate, 
+                            msg.avgLatency, msg.minLatency, msg.avgLatency,
+                            statsRate.avg, statsRate.min, statsRate.max);
+
+                        //Console.WriteLine($"First message ts: {DateTime.Parse(msg.firstMsgTs).ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
+                        //Console.WriteLine($"Last message ts: {DateTime.Parse(msg.lastMsgTs).ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
                     }
 
-                    Console.WriteLine("\tSystem properties (set by IoT Hub):");
-                    foreach (KeyValuePair<string, object> prop in partitionEvent.Data.SystemProperties)
+                    // test completed: stop listening if all messages has been received
+                    if ( (msg.counter == msg.total) && (statsRate.elementsNum > 0) )
                     {
-                        PrintProperties(prop);
+                        timeout.Stop();
+
+                        lastMessageDT = DateTime.Parse(msg.lastMsgTs);
+                        TimeSpan delta = lastMessageDT - firstMessageDT;
+                        double averageRate = msg.total / delta.TotalSeconds;
+
+                        Console.WriteLine("\n------\nTest completed. All messages received.\n");
+
+                        Console.WriteLine($"First message ts: {firstMessageDT.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
+                        Console.WriteLine($"Last message ts: {lastMessageDT.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
+                        Console.WriteLine($"Delta ts [s]: {delta.TotalSeconds}");
+                        Console.WriteLine($"Total messages: {msg.total}");
+                        Console.WriteLine($"Avg rate [msg/s]: {averageRate:0.00}");
+                        //Console.WriteLine($"Avg (min/max) rate [msg/s]: {statsRate.avg:0.00} ({statsRate.min:0.00},{statsRate.max:0.00})");
+                        Console.WriteLine($"Avg (min/max) latency [ms]: {statsLatency.avg:0.00} ({statsLatency.min:0.00},{statsLatency.max:0.00})");
+                        return;
                     }
-                    */
                 }
             }
 
@@ -106,6 +203,7 @@ namespace eh_consumer
             {
                 // This is expected when the token is signaled; it should not be considered an
                 // error in this scenario.
+                return;
             }
         }
 
