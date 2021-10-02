@@ -105,19 +105,21 @@ namespace source
         {
             Stopwatch stopwatch = new Stopwatch();
             Stopwatch burstStopwatch = new Stopwatch();
+            Guid runId = Guid.NewGuid();
 
             int msgCnt = 0;
             int burstCnt = 0;
             int totalMessageCount = 0;
+
+            Console.WriteLine($"Run ID: {runId.ToString()}");
 
             double waitBeforeNextMessage = 0; //if 0, there won't be any delay
             if (options.targetRate > 0)
                 waitBeforeNextMessage = 1 / (double)options.targetRate * 1000;
             Console.WriteLine($"(calculated) wait between messages: {waitBeforeNextMessage} ms");
 
-            Console.WriteLine();
-            Console.WriteLine();
-
+            Console.WriteLine("\n\n");
+            
             burstStopwatch.Restart();
 
             if (options.burstLength == 0)
@@ -155,6 +157,7 @@ namespace source
                         ts = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
                         counter = msgCnt + 1,
                         total = options.burstLength,
+                        runId = runId.ToString(),
                         payload = RandomString(options.payloadLength)
                     };
                     string messageString = "";

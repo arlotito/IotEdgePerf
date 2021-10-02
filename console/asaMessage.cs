@@ -4,8 +4,8 @@ namespace AsaJob
     {
         // timestamp of the 5s bucket
         public string t;
-        //device id
-        public string device_id;
+        
+        public string runId;
         public string firstMsgTs;
         public string lastMsgTs;
 
@@ -13,6 +13,7 @@ namespace AsaJob
         public float counter;
         //last total seen in the bucket
         public float total;
+        
         public int messagesCount;
         public int estimatedRate;
         public float avgLatency;
