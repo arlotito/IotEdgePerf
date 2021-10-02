@@ -15,6 +15,9 @@ stage2 as
 (
     SELECT
         device_id,
+        counter,
+        total,
+        device_ts,
         DATEDIFF (millisecond, device_ts, IoTHubEnqueuedTime) AS Latency
     FROM stage1 
 )
@@ -22,6 +25,11 @@ stage2 as
 SELECT
     System.Timestamp() t,
     device_id,
+    MIN(device_ts) AS firstMsgTs,
+    MAX(device_ts) AS lastMsgTs,
+    MAX(counter) AS counter,
+    MAX(total) AS total,
+    COUNT(*) AS messagesCount,
     COUNT(*)/5 AS estimatedRate,
     AVG(Latency) AS avgLatency,
     MIN(Latency) AS minLatency,

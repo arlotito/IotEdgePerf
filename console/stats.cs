@@ -30,5 +30,10 @@ namespace Toolbox
 
             this.avg = (this.avg * (this.elementsNum-1) + value) / this.elementsNum;
         }
+
+        public override string ToString()
+        {
+            return String.Format($"{this.avg:0.00},{this.min:0.00},{this.max:0.00}");
+        }
     }
 }
