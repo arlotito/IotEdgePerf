@@ -30,7 +30,7 @@ namespace eh_consumer
             't',
             "timeout",
             Required = false,
-            Default = "60000",
+            Default = "20000",
             HelpText = "If a new message is not received within this timeout, the app exits")]
         public string Timeout { get; set; }
 

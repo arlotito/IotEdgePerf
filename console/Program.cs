@@ -2,15 +2,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
-
-using System.Timers;
 
 using System.Threading;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
-using Toolbox;
 
 using Azure.Messaging.EventHubs.Consumer;
 
@@ -21,7 +19,7 @@ namespace eh_consumer
 {
     class Program
     {
-        
+
         private static string EventHubConnectionString = "";
         private static string EventHubName = "";
         private static double TimeoutInterval;
@@ -29,6 +27,8 @@ namespace eh_consumer
         private static System.Timers.Timer timeout;
 
         private static bool ShowMsg;
+
+        static List<AsaJob.Message> MessagesList = new List<AsaJob.Message>();
 
         private static void GetConfig(string[] args)
         {
@@ -48,13 +48,13 @@ namespace eh_consumer
             EventHubName = Environment.GetEnvironmentVariable("EH_NAME");
             if (!string.IsNullOrEmpty(_parameters.EventHubName))
             {
-                EventHubName = _parameters.EventHubName;         
+                EventHubName = _parameters.EventHubName;
             }
 
             EventHubConnectionString = Environment.GetEnvironmentVariable("EH_CONN_STRING");
             if (!string.IsNullOrEmpty(_parameters.EventHubConnectionString))
             {
-                EventHubConnectionString = _parameters.EventHubConnectionString;         
+                EventHubConnectionString = _parameters.EventHubConnectionString;
             }
 
             // check if EH info is provided
@@ -64,14 +64,14 @@ namespace eh_consumer
                 Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(result, null, null));
                 Environment.Exit(1);
             }
-            
+
             double.TryParse(_parameters.Timeout, out TimeoutInterval);
-            ShowMsg=_parameters.ShowMsg;
+            ShowMsg = _parameters.ShowMsg;
         }
-        
+
         public static async Task Main(string[] args)
         {
-            GetConfig(args);            
+            GetConfig(args);
 
             Console.WriteLine("Reading events... Ctrl-C to exit.\n");
 
@@ -90,7 +90,7 @@ namespace eh_consumer
             // Run the sample
             await ReceiveMessagesFromDeviceAsync(cts.Token);
 
-            Console.WriteLine("Cloud message reader finished.");
+            Console.WriteLine("\nCloud message reader finished.");
         }
 
         private static void SetTimeout(double interval, CancellationTokenSource cts)
@@ -105,155 +105,142 @@ namespace eh_consumer
 
         private static void OnTimeout(CancellationTokenSource cts)
         {
-            Console.WriteLine("Timeout elapsed.");
+            Console.WriteLine("\nTimeout elapsed.");
             cts.Cancel();
+
+            Analyze();
         }
+
+        private static void Analyze()
+        {
+            bool logBurstDetails = false;
+            
+            // order by asa timestamp
+            MessagesList.OrderBy(msg => msg.t);
+
+            // group by burstCounter
+            var query = from item in MessagesList
+                            group item by item.burstCounter into burstGroup
+                            orderby burstGroup.Key ascending
+                            select burstGroup;
+            
+            // perform analysis
+            foreach (var burstGroup in query)
+            {
+                var burstLength = burstGroup.Last().asaBurstLength;
+                
+                // extracts measurement done by ASA
+                double asaEstimatedRateIotHub = burstGroup.Last().asaEstimatedRateIotHub; 
+
+                // gets first and last SOURCE timestamp
+                var firstMessageDtInBurst = DateTime.Parse(burstGroup.First().firstMsgTs);
+                var lastMessageDtInBurst = DateTime.Parse(burstGroup.Last().lastMsgTs);
+                TimeSpan burstDurationSource = lastMessageDtInBurst - firstMessageDtInBurst;
+                double averageRateInBurstSource = burstLength / burstDurationSource.TotalSeconds;
+
+                // gets first and last IoT HUB enqueuement timestamp (unix epoch)
+                var firstIotHubEpoch = burstGroup.First().firstIotHubEpoch;
+                var lastIotHubEpoch = burstGroup.Last().lastIotHubEpoch;
+                double burstDurationIotHub = (lastIotHubEpoch - firstIotHubEpoch) / 1000;
+                double averageRateInBurstIotHub = burstLength / burstDurationIotHub;
+
+                // stats on latency
+                double avgLatency = burstGroup.Average(item => item.asaAvgLatency);
+                double minLatency = burstGroup.Min(item => item.asaAvgLatency);
+                double maxLatency = burstGroup.Max(item => item.asaAvgLatency);
+
+                Console.Write($"#: {burstGroup.Key},");
+                Console.Write($"msg sent: {burstLength},");
+                Console.Write($"source/iothub [msg/s]: {averageRateInBurstSource:0.00}/{averageRateInBurstIotHub:0.00},");
+                Console.Write($"latency (avg/min/max) [ms]: {avgLatency:0.00}/{minLatency:0.00}/{maxLatency:0.00}");
+                Console.WriteLine();
+
+                if (logBurstDetails)
+                {
+                    // detailed
+                    Console.WriteLine(string.Format("Run ID: {0}", burstGroup.Last().runId));
+                    Console.WriteLine(string.Format("Burst ID: {0}", burstGroup.Key));
+                    Console.WriteLine($"Total messages: {burstLength}");
+                    
+                    Console.WriteLine($"Source:");
+                    Console.WriteLine($"    First message ts: {firstMessageDtInBurst.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
+                    Console.WriteLine($"    Last message ts: {lastMessageDtInBurst.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
+                    Console.WriteLine($"    Delta ts [s]: {burstDurationSource.TotalSeconds}");
+                    Console.WriteLine($"    avg rate [msg/s]: {averageRateInBurstSource:0.00}");
+                    Console.WriteLine("\n");
+                    Console.WriteLine($"IoT HUB ingress:");
+                    Console.WriteLine($"    First message ts: {firstIotHubEpoch}");
+                    Console.WriteLine($"    Last message ts: {lastIotHubEpoch}");
+                    Console.WriteLine($"    Delta ts [s]: {burstDurationIotHub:0.00}");
+                    Console.WriteLine($"    avg rate ASA [msg/s]: {asaEstimatedRateIotHub:0.00}");
+                    Console.WriteLine($"    avg rate [msg/s]: {averageRateInBurstIotHub:0.00}");
+                    Console.WriteLine($"    avg (min/max) latency [ms]: {avgLatency:0.00} ({minLatency:0.00},{maxLatency:0.00})");
+                    Console.WriteLine("\n------\n\n");
+                }
+                
+            }
+        }
+
 
         // Asynchronously create a PartitionReceiver for a partition and then start
         // reading any messages sent from the simulated client.
         private static async Task ReceiveMessagesFromDeviceAsync(CancellationToken ct)
         {
+            DateTime discardBefore = DateTime.Now;
+            
             await using var consumer = new EventHubConsumerClient(
                     EventHubConsumerClient.DefaultConsumerGroupName,
                     EventHubConnectionString,
                     EventHubName);
 
             Console.WriteLine("Listening for messages on all partitions.");
+            Console.WriteLine($"Timeout: {TimeoutInterval} ms\n");
+            Console.WriteLine($"Discarding messages before {discardBefore.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}\n");
 
             try
             {
-                StatsCalculator statsRate = new StatsCalculator();
-                StatsCalculator statsLatency = new StatsCalculator();
-
-                DateTime startFromTime = DateTime.Now;
-                DateTime firstMessageDtInBurst = new DateTime();
-                DateTime lastMessageDtInBurst = new DateTime();
-
-                double firstIotHubEpoch = 0, lastIotHubEpoch = 0;
-                
-                //Console.WriteLine(DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK"));
-
-                int count = 0;
-
-                Console.WriteLine("timestamp,counter,total,messagesCount,asaEstimatedRate,asaAvgLatency,asaMinLatency,asaMaxLatency,statsAvgRate,statsMinRate,statsMaxRate");
+                //Console.WriteLine("timestamp,counter,total,messagesCount,asaEstimatedRate,asaAvgLatency,asaMinLatency,asaMaxLatency,statsAvgRate,statsMinRate,statsMaxRate");
 
                 await foreach (PartitionEvent partitionEvent in consumer.ReadEventsAsync(ct))
                 {
                     //Console.WriteLine($"\nMessage received on partition {partitionEvent.Partition.PartitionId}:");
 
                     string data = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
-                    
-                    if (ShowMsg)
-                        Console.WriteLine(data);
 
                     try
                     {
                         var msg = JsonConvert.DeserializeObject<AsaJob.Message>(data);
-
-                        //DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")
-
+                        
                         //do not show old messages
                         DateTime t = DateTime.Parse(msg.t);
 
-                        if (t >= startFromTime)
+                        if (DateTime.Compare(t, discardBefore) > 0)
                         {
-                            if (count == 0)
-                            {
-                                firstMessageDtInBurst = DateTime.Parse(msg.firstMsgTs);
-                                firstIotHubEpoch = msg.firstIotHubEpoch;
-                                // Console.WriteLine($"** First message ts: {msg.firstMsgTs}");
-                                // Console.WriteLine($"** First message iothub ts: {msg.firstIotHubEpoch}");
-                            }
-
-                            count++;
                             timeout.Stop();
                             timeout.Start();
-                            
-                            statsRate.Append(msg.asaEstimatedRate);
-                            statsLatency.Append(msg.asaAvgLatency);
 
-                            Console.WriteLine(
-                                $"{t.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")},"
-                                + $"{msg.asaRunMsgTotal},"
-                                + $"{msg.asaRunMsgCounter}," 
-                                + $"{msg.asaRunElapsed},"
-                                + $"{msg.burstCounter}," 
-                                + $"{msg.asaBurstLength}," 
-                                + $"{msg.asaBurstMsgCounter},"
-                                + $"{msg.asaRunElapsed},"
-                                + $"{msg.asaAvgLatency:0.0},"
-                                + $"{msg.asaMinLatency:0.0},"
-                                + $"{msg.asaMaxLatency:0.0},"
-                                + $"{msg.asaEstimatedRate:0.0},"
-                                + $"{msg.asaEstimatedRateIotHub:0.0},"
-                                + $"{msg.asaEstimatedRateAsa:0.0},"
-                                + $"{statsRate.avg:0.0}," 
-                                + $"{statsRate.min:0.0},"
-                                + $"{statsRate.max:0.0}"
-                            );
+                            if (ShowMsg)
+                                Console.WriteLine(data);
+                            else
+                                Console.Write(".");
 
-                            //Console.WriteLine($"First message ts: {DateTime.Parse(msg.firstMsgTs).ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
-                            //Console.WriteLine($"Last message ts: {DateTime.Parse(msg.lastMsgTs).ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
+                            // add for analysis
+                            MessagesList.Add(msg);
                         }
-
-                        // BURST completed
-                        if ( (msg.asaBurstMsgCounter == msg.asaBurstLength) && (count > 0) )
+                        else
                         {
-                            lastMessageDtInBurst = DateTime.Parse(msg.lastMsgTs);
-                            lastIotHubEpoch = msg.lastIotHubEpoch;
-
-                            TimeSpan burstDurationSource = lastMessageDtInBurst - firstMessageDtInBurst;
-                            double burstDurationIotHub = (lastIotHubEpoch - firstIotHubEpoch) / 1000;
-
-                            double averageRateInBurstSource = msg.asaBurstLength / burstDurationSource.TotalSeconds;
-                            double averageRateInBurstIotHub = msg.asaBurstLength / burstDurationIotHub;
-
-
-
-                            Console.WriteLine("\n------\nBURST completed. All messages received.\n");
-
-                            Console.WriteLine($"Run ID: {msg.runId}");
-                            Console.WriteLine($"Burst counter: {msg.burstCounter}");
-                            Console.WriteLine($"Total messages: {msg.asaBurstLength}");
-                            
-                            Console.WriteLine($"Source:");
-                            Console.WriteLine($"    First message ts: {firstMessageDtInBurst.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
-                            Console.WriteLine($"    Last message ts: {lastMessageDtInBurst.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}");
-                            Console.WriteLine($"    Delta ts [s]: {burstDurationSource.TotalSeconds}");
-                            Console.WriteLine($"    Total messages: {msg.asaBurstLength}");
-                            Console.WriteLine($"    avg rate [msg/s]: {averageRateInBurstSource:0.00}");
-                            
-                            Console.WriteLine($"IoT HUB ingress:");
-                            Console.WriteLine($"    First message ts: {firstIotHubEpoch}");
-                            Console.WriteLine($"    Last message ts: {lastIotHubEpoch}");
-                            Console.WriteLine($"    Delta ts [s]: {burstDurationIotHub:0.00}");
-                            Console.WriteLine($"    Total messages: {msg.asaBurstLength}");
-                            Console.WriteLine($"    avg rate ASA [msg/s]: {msg.asaEstimatedRateIotHub:0.00}");
-                            Console.WriteLine($"    avg rate [msg/s]: {averageRateInBurstIotHub:0.00}");
-                            Console.WriteLine($"    avg (min/max) latency [ms]: {statsLatency.avg:0.00} ({statsLatency.min:0.00},{statsLatency.max:0.00})");
-                            
-                            return;
-                        }
-
-                        // test completed: stop listening if all messages has been received
-                        if ( (msg.asaRunMsgCounter == msg.asaRunMsgTotal) && (statsRate.elementsNum > 0) )
-                        {
-                            timeout.Stop();
-
-                            Console.WriteLine("\n------\nTest completed. All bursts received.\n");
-
-                            return;
+                            // discarded
                         }
                     }
 
-                    catch (Newtonsoft.Json.JsonReaderException e)
+                    catch (Newtonsoft.Json.JsonReaderException)
                     {
                         //Console.WriteLine($"{e}");
                         //Console.WriteLine(data);
                         //Console.WriteLine($"{e.Message}");
                     }
 
-                    catch (Newtonsoft.Json.JsonSerializationException e)
+                    catch (Newtonsoft.Json.JsonSerializationException)
                     {
                         //Console.WriteLine($"{e}");
                         //Console.WriteLine(data);
