@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
 using CommandLine;
+using source;
 
 namespace eh_consumer
 {
@@ -34,7 +36,7 @@ namespace eh_consumer
 
         [Option(
             "device-id",
-            Required = false,
+            Required = true,
             Default = "",
             HelpText = "The device id")]
         public string DeviceId { get; set; }
@@ -53,5 +55,119 @@ namespace eh_consumer
             Default = false,
             HelpText = "Show received messages")]
         public bool ShowMsg { get; set; }
+
+        //-----------
+        [Option(
+            "burst-length",
+            Required = false,
+            Default = 1000,
+            HelpText = "Number of messages in a single burst.")]
+        public int burstLength { get; set; }
+
+        [Option(
+            "burst-number",
+            Required = false,
+            Default = 1,
+            HelpText = "Number of bursts.")]
+        public int burstNumber { get; set; }
+
+        [Option(
+            "target-rate",
+            Required = false,
+            Default = 50,
+            HelpText = "Target rate [msg/s]")]
+        public int targetRate { get; set; }
+
+        [Option(
+            "payload-length",
+            Required = false,
+            Default = 1024,
+            HelpText = "Number of bytes in the message.")]
+        public int payloadLength { get; set; }
+
+        [Option(
+            "burst-wait",
+            Required = false,
+            Default = 7000,
+            HelpText = "Millisencods to wait before next burst.")]
+        public int burstWait { get; set; }
+
+        [Option(
+            "burst-before-start",
+            Required = false,
+            Default = 0,
+            HelpText = "Millisencods to wait before starting.")]
+        public int waitBeforeStart { get; set; }
+
+        [Option(
+            "batch-size",
+            Required = false,
+            Default = 1,
+            HelpText = "Batch size")]
+        public int batchSize { get; set; }
+    }
+
+    partial class Program
+    {
+        private static void GetConfig(string[] args)
+        {
+            Parameters _parameters = new Parameters();
+
+            // Parse application parameters
+            ParserResult<Parameters> result = Parser.Default.ParseArguments<Parameters>(args)
+                .WithParsed(parsedParams =>
+                {
+                    _parameters = parsedParams;
+                })
+                .WithNotParsed(errors =>
+                {
+                    Environment.Exit(1);
+                });
+
+            EventHubName = Environment.GetEnvironmentVariable("EH_NAME");
+            if (!string.IsNullOrEmpty(_parameters.EventHubName))
+            {
+                EventHubName = _parameters.EventHubName;
+            }
+
+            EventHubConnectionString = Environment.GetEnvironmentVariable("EH_CONN_STRING");
+            if (!string.IsNullOrEmpty(_parameters.EventHubConnectionString))
+            {
+                EventHubConnectionString = _parameters.EventHubConnectionString;
+            }
+
+            IotHubConnectionString = Environment.GetEnvironmentVariable("IOT_CONN_STRING");
+            if (!string.IsNullOrEmpty(_parameters.IotHubConnectionString))
+            {
+                IotHubConnectionString = _parameters.IotHubConnectionString;
+            }
+
+            // check if EH info is provided
+            if (string.IsNullOrWhiteSpace(EventHubConnectionString)
+                || string.IsNullOrWhiteSpace(EventHubName))
+            {
+                Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(result, null, null));
+                Environment.Exit(1);
+            }
+
+            double.TryParse(_parameters.Timeout, out TimeoutInterval);
+            ShowMsg = _parameters.ShowMsg;
+            DeviceId = _parameters.DeviceId;
+
+            senderMachineConfig = new SenderMachineConfigData {
+                enable = true,
+                burstLength=_parameters.burstLength,
+                burstWait=_parameters.burstWait,
+                burstNumber=_parameters.burstNumber,
+                targetRate=_parameters.targetRate,
+                payloadLength=_parameters.payloadLength,
+                batchSize=_parameters.batchSize,
+                logMsg=false,
+                logBurst=true,
+                logHist=false,
+                waitBeforeStart=_parameters.waitBeforeStart,
+                rateCalcPeriod=5000
+            };
+        }
     }
 }

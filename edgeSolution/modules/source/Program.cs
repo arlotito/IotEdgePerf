@@ -31,7 +31,8 @@ namespace source
             Console.WriteLine("");
             Console.WriteLine("sending messages...");
 
-            senderMachine.Reset(SenderMachineConfig.GetFromTwin(twin));
+            await senderMachine.RegisterDM();
+            senderMachine.Start(Guid.NewGuid(), SenderMachineConfig.GetFromTwin(twin));
             
             while (true)
             {
@@ -88,26 +89,12 @@ namespace source
             await OnDesiredPropertiesUpdate(moduleTwin.Properties.Desired, IoTHubModuleClient);
             await IoTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, null);
 
-            // direct methods
-            await IoTHubModuleClient.SetMethodHandlerAsync("Reset", OnResetDm, null);
-            
             Console.WriteLine("IoT Hub module client initialized.");
             Console.WriteLine($"Device id: '{EnvDeviceId}'");
             Console.WriteLine($"IoT HUB: '{EnvHub}'");
 
             // 
             senderMachine = new SenderMachine(IoTHubModuleClient, ModuleOutput);
-        }
-
-        private static Task<MethodResponse> OnResetDm(MethodRequest methodRequest, object userContext)
-        {
-            Console.WriteLine("Reset DM received");
-            
-            senderMachine.Reset(SenderMachineConfig.GetFromTwin(twin));
-            
-            // Acknowlege the direct method call with a 200 success message
-            string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
-            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
         }
     }
 }

@@ -13,7 +13,7 @@ namespace source
     
     using edgeBenchmark;
 
-    public class SenderMachine : ISenderMachine
+    public partial class SenderMachine : ISenderMachine
     {
         StatsCalculator stats;
 
@@ -41,10 +41,16 @@ namespace source
             this.moduleOutput=moduleOutput;
         }
 
-        public void Reset(SenderMachineConfigData config)
+        public void Restart(Guid runId)
         {
             ResetRequest = true;
+            this.runId=runId;
+        }
+
+        public void Start(Guid runId, SenderMachineConfigData config)
+        {
             this.config = config;
+            this.Restart(runId);
         }
 
         private void MachineReset()
@@ -55,7 +61,6 @@ namespace source
 
             stats = new StatsCalculator(200, 1);
             
-            runId = Guid.NewGuid();
             burstMsgCnt = 0;        // counts messages in a burst
             burstCnt = 0;           // counts bursts
             totalMessageCount = 0;  // all messages across all bursts 
@@ -123,6 +128,11 @@ namespace source
         
         public async Task SendMessagesAsync()
         {
+            if (!config.enable)
+            {
+                Console.WriteLine("disabled. Nothing to do.");
+            }
+            
             if (ResetRequest)
             {
                 MachineReset();
