@@ -14,6 +14,8 @@ using Azure.Messaging.EventHubs.Consumer;
 
 using CommandLine;
 
+using Microsoft.Azure.Devices;
+
 
 namespace eh_consumer
 {
@@ -29,6 +31,10 @@ namespace eh_consumer
         private static bool ShowMsg;
 
         static List<AsaJob.Message> MessagesList = new List<AsaJob.Message>();
+
+        private static ServiceClient serviceClient;
+        private static string IotHubConnectionString = "";
+        private static string DeviceId ="";
 
         private static void GetConfig(string[] args)
         {
@@ -57,6 +63,12 @@ namespace eh_consumer
                 EventHubConnectionString = _parameters.EventHubConnectionString;
             }
 
+            IotHubConnectionString = Environment.GetEnvironmentVariable("IOT_CONN_STRING");
+            if (!string.IsNullOrEmpty(_parameters.IotHubConnectionString))
+            {
+                IotHubConnectionString = _parameters.IotHubConnectionString;
+            }
+
             // check if EH info is provided
             if (string.IsNullOrWhiteSpace(EventHubConnectionString)
                 || string.IsNullOrWhiteSpace(EventHubName))
@@ -67,6 +79,7 @@ namespace eh_consumer
 
             double.TryParse(_parameters.Timeout, out TimeoutInterval);
             ShowMsg = _parameters.ShowMsg;
+            DeviceId=_parameters.DeviceId;
         }
 
         public static async Task Main(string[] args)
@@ -87,10 +100,29 @@ namespace eh_consumer
             // start timeout
             SetTimeout(TimeoutInterval, cts);
 
-            // Run the sample
+            // Create a ServiceClient to communicate with service-facing endpoint on your hub.
+            serviceClient = ServiceClient.CreateFromConnectionString(IotHubConnectionString);
+            await InvokeReset(DeviceId);
+
+            // listens to EH messages
             await ReceiveMessagesFromDeviceAsync(cts.Token);
 
             Console.WriteLine("\nCloud message reader finished.");
+        }
+
+        // Invoke the direct method on the device, passing the payload
+        private static async Task InvokeReset(string deviceId)
+        {
+            var methodInvocation = new CloudToDeviceMethod("Reset")
+            {
+                ResponseTimeout = TimeSpan.FromSeconds(30),
+            };
+            //methodInvocation.SetPayloadJson("");
+
+            // Invoke the direct method asynchronously and get the response from the simulated device.
+            var response = await serviceClient.InvokeDeviceMethodAsync(deviceId, "source", methodInvocation);
+
+            Console.WriteLine($"\nResponse status: {response.Status}, payload:\n\t{response.GetPayloadAsJson()}");
         }
 
         private static void SetTimeout(double interval, CancellationTokenSource cts)

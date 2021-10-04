@@ -19,12 +19,25 @@ namespace eh_consumer
         public string EventHubName { get; set; }
 
         [Option(
-            'c',
-            "ehConnString",
+            "eh-conn-string",
             Required = false,
             Default = "",
             HelpText = "The connection string to the event hub-compatible endpoint.\nIf you prefer, you can use the env var EH_CONN_STRING instead. Use the Azure portal to get this parameter.")]
         public string EventHubConnectionString { get; set; }
+
+        [Option(
+            "iot-conn-string",
+            Required = false,
+            Default = "",
+            HelpText = "The connection string to the iot hub.\nIf you prefer, you can use the env var IOT_CONN_STRING instead.")]
+        public string IotHubConnectionString { get; set; }
+
+        [Option(
+            "device-id",
+            Required = false,
+            Default = "",
+            HelpText = "The device id")]
+        public string DeviceId { get; set; }
 
         [Option(
             't',
