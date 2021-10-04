@@ -13,28 +13,92 @@ namespace source
     
     using edgeBenchmark;
 
-    public class SenderMachine
+    public class SenderMachine : ISenderMachine
     {
-        RateMeter rateMeter;
-
         StatsCalculator stats;
 
         string moduleOutput;
 
-        bool doReset = false;
+        bool ResetRequest = false;
 
         ModuleClient moduleClient;
-        
+
+        SenderMachineConfigData config;
+
+        Stopwatch transmissionStopwatch; //measures the transmission duration
+        Stopwatch burstStopwatch; // measures time during burst
+        Stopwatch runStopwatch;   // measures time during the entire run
+        Guid runId;
+        int burstMsgCnt;        // counts messages in a burst
+        int burstCnt;           // counts bursts
+        int totalMessageCount;  // all messages across all bursts 
+        int runMsgTotal; // number of messages that will be sent in this run
+        double waitBeforeNextMessage; 
+                
         public SenderMachine(ModuleClient moduleClient, string moduleOutput)
         {
-            stats = new StatsCalculator(200, 1);
             this.moduleClient=moduleClient;
             this.moduleOutput=moduleOutput;
         }
 
-        public void RequestReset()
+        public void Reset(SenderMachineConfigData config)
         {
-            doReset = true;
+            ResetRequest = true;
+            this.config = config;
+        }
+
+        private void MachineReset()
+        {
+            transmissionStopwatch = new Stopwatch(); //measures the transmission duration
+            burstStopwatch = new Stopwatch(); // measures time during burst
+            runStopwatch = new Stopwatch();
+
+            stats = new StatsCalculator(200, 1);
+            
+            runId = Guid.NewGuid();
+            burstMsgCnt = 0;        // counts messages in a burst
+            burstCnt = 0;           // counts bursts
+            totalMessageCount = 0;  // all messages across all bursts 
+            runMsgTotal = this.config.burstLength * this.config.burstNumber; // number of messages that will be sent in this run
+            waitBeforeNextMessage = 0; //if 0, there won't be any delay
+
+            // show current config
+            Console.WriteLine(JsonConvert.SerializeObject(this.config, Formatting.Indented));
+
+            // wait before starting
+            Thread.Sleep(this.config.waitBeforeStart);
+            Console.WriteLine($"\nWaiting {config.waitBeforeStart} ms before starting...");
+            
+            //
+            Console.WriteLine($"Run ID: {runId.ToString()}");
+
+            // calculate period from desired rate
+            if (this.config.targetRate > 0)
+                waitBeforeNextMessage = 1 / (double)this.config.targetRate * 1000;
+            Console.WriteLine($"(calculated) wait between messages: {waitBeforeNextMessage} ms");
+
+            Console.WriteLine("\n\n");
+
+            if (this.config.burstLength == 0)
+            {
+                Console.WriteLine("Burst length is 0. Nothing to do.");
+                return;
+            }
+
+            if (this.config.burstNumber == 0)
+            {
+                Console.WriteLine("Burst number is 0. Nothing to do.");
+                return;
+            }
+
+            if (this.config.batchSize < 1)
+            {
+                Console.WriteLine("batchSize must be >= 1.");
+                return;
+            }
+
+            runStopwatch.Restart();
+            burstStopwatch.Restart(); // 1st burst starts here
         }
 
         /// <summary>
@@ -57,61 +121,13 @@ namespace source
             return new String(stringChars);
         }
         
-        public async Task SendMessages(SenderMachineConfigData config)
+        public async Task SendMessagesAsync()
         {
-            Stopwatch transmissionStopwatch = new Stopwatch(); //measures the transmission duration
-            Stopwatch burstStopwatch = new Stopwatch(); // measures time during burst
-            Stopwatch runStopwatch = new Stopwatch();   // measures time during the entire run
-            Guid runId = Guid.NewGuid();
-
-            doReset = false;
-
-            int burstMsgCnt = 0;        // counts messages in a burst
-            int burstCnt = 0;           // counts bursts
-            int totalMessageCount = 0;  // all messages across all bursts 
-            int runMsgTotal = config.burstLength * config.burstNumber; // number of messages that will be sent in this run
-
-            // show current config
-            Console.WriteLine(JsonConvert.SerializeObject(config, Formatting.Indented));
-
-            // wait before starting
-            Console.WriteLine("");
-            Console.WriteLine($"Waiting {config.waitBeforeStart} ms before starting...");
-            Thread.Sleep(config.waitBeforeStart);
-
-            // initialize and start the rate meter
-            rateMeter = new RateMeter(config.rateCalcPeriod, new string[] { this.moduleOutput });
-
-            Console.WriteLine($"Run ID: {runId.ToString()}");
-
-            // calculate period from desired rate
-            double waitBeforeNextMessage = 0; //if 0, there won't be any delay
-            if (config.targetRate > 0)
-                waitBeforeNextMessage = 1 / (double)config.targetRate * 1000;
-            Console.WriteLine($"(calculated) wait between messages: {waitBeforeNextMessage} ms");
-
-            Console.WriteLine("\n\n");
-
-            if (config.burstLength == 0)
+            if (ResetRequest)
             {
-                Console.WriteLine("Burst length is 0. Nothing to do.");
-                return;
+                MachineReset();
+                ResetRequest = false;
             }
-
-            if (config.burstNumber == 0)
-            {
-                Console.WriteLine("Burst number is 0. Nothing to do.");
-                return;
-            }
-
-            if (config.batchSize < 1)
-            {
-                Console.WriteLine("batchSize must be >= 1.");
-                return;
-            }
-
-            runStopwatch.Restart();
-            burstStopwatch.Restart(); // 1st burst starts here
 
             while (true)
             {
@@ -119,17 +135,17 @@ namespace source
                 var waitUntil = start + waitBeforeNextMessage;
                 var messageBatch = new List<Message>();
 
-                if (doReset)
+                if (ResetRequest)
                 {
                     Console.WriteLine("Reset requested\n");
-                    doReset = false;
+                    ResetRequest = false;
                     return;
                 }
 
                 if (burstMsgCnt == 0)
                     Console.WriteLine("{0},text,sending burst...", DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK"));
 
-                for (int k = 0; k < config.batchSize; k++)
+                for (int k = 0; k < this.config.batchSize; k++)
                 {
                     // IMPORTANT: do not move this outside of the loop, otherwise you'll get an exception
                     var payload = new MessageDataPoint
@@ -140,7 +156,7 @@ namespace source
                         //burst
                         burstCounter = burstCnt + 1,
                         burstMsgCounter = burstMsgCnt + 1,
-                        burstLength = config.burstLength,
+                        burstLength = this.config.burstLength,
                         burstElapsed = burstStopwatch.Elapsed.TotalMilliseconds,
 
                         //run
@@ -148,7 +164,7 @@ namespace source
                         runMsgTotal = runMsgTotal,
                         runElapsed = runStopwatch.Elapsed.TotalMilliseconds,
                         
-                        payload = RandomString(config.payloadLength)
+                        payload = RandomString(this.config.payloadLength)
                     };
                     string messageString = "";
                     messageString = JsonConvert.SerializeObject(payload);
@@ -178,9 +194,7 @@ namespace source
 
                 double burstElapsedMilliseconds = burstStopwatch.Elapsed.TotalMilliseconds;
 
-                rateMeter.Update(totalMessageCount, this.moduleOutput);
-
-                if (config.logMsg)
+                if (this.config.logMsg)
                 {
                     Console.Write($"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")},");
                     Console.Write($"message,");
@@ -192,16 +206,17 @@ namespace source
                     Console.Write($"{stats.min:0.000},");
                     Console.Write($"{stats.max:0.000},");
                     Console.Write($"{burstElapsedMilliseconds:0.000},");
-                    Console.Write($"{rateMeter.channels[this.moduleOutput].rate:0.000}");
                     Console.WriteLine("");
                 }
 
-                if (burstMsgCnt >= config.burstLength)
+                if (burstMsgCnt >= this.config.burstLength)
                 {
                     burstCnt++;
 
-                    if (config.logBurst)
+                    if (this.config.logBurst)
                     {
+                        double rate = burstMsgCnt / burstElapsedMilliseconds * 1000;
+                        
                         Console.Write($"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")},");
                         Console.Write($"burst,");
                         Console.Write($"{burstCnt},");
@@ -210,18 +225,18 @@ namespace source
                         Console.Write($"{stats.min:0.000},");
                         Console.Write($"{stats.max:0.000},");
                         Console.Write($"{burstElapsedMilliseconds:0.000},");
-                        Console.Write($"{rateMeter.channels[this.moduleOutput].rate:0.000}");
+                        Console.Write($"{rate:0.000}");
                         Console.WriteLine("");
                     }
 
-                    if (config.logHist)
+                    if (this.config.logHist)
                     {
                         stats.Print();
                     }
 
-                    await Task.Delay(config.burstWait); //wait even if last burst
+                    await Task.Delay(this.config.burstWait); //wait even if last burst
 
-                    if (burstCnt < config.burstNumber)
+                    if (burstCnt < this.config.burstNumber)
                     {
                         // next burst
                         burstMsgCnt = 0;
@@ -229,12 +244,13 @@ namespace source
                     }
                     else
                     {
-                        //completed
-                        while (!doReset)
+                        //completed - wait until a reset is requested
+                        while (!ResetRequest)
                         {
                         }
 
                         Console.WriteLine("Reset requested\n");
+                        return;
                     }
 
                 }

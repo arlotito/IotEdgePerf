@@ -1,14 +1,12 @@
 namespace source
 {
     using System;
-    using System.Threading;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared; // For TwinCollection
     using Newtonsoft.Json;
-
-    using Prometheus;
     
     class Program
     {
@@ -33,10 +31,11 @@ namespace source
             Console.WriteLine("");
             Console.WriteLine("sending messages...");
 
+            senderMachine.Reset(SenderMachineConfig.GetFromTwin(twin));
             
             while (true)
             {
-                await senderMachine.SendMessages(SenderMachineConfig.GetFromTwin(twin));
+                await senderMachine.SendMessagesAsync();
             }
             
         }
@@ -49,8 +48,6 @@ namespace source
                 Console.WriteLine(JsonConvert.SerializeObject(desiredProperties));
 
                 twin = desiredProperties;
-
-                senderMachine.RequestReset();
             }
 
             catch (AggregateException ex)
@@ -82,25 +79,35 @@ namespace source
             MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             ITransportSettings[] settings = { mqttSetting };
 
-            // init and start the Prometheus server
-            var server = new MetricServer(port: 9600);
-            server.Start();
-
             // Open a connection to the Edge runtime
             IoTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await IoTHubModuleClient.OpenAsync();
 
-            // Read the TemperatureThreshold value from the module twin's desired properties
+            // Read module twin
             var moduleTwin = await IoTHubModuleClient.GetTwinAsync();
             await OnDesiredPropertiesUpdate(moduleTwin.Properties.Desired, IoTHubModuleClient);
             await IoTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, null);
 
+            // direct methods
+            await IoTHubModuleClient.SetMethodHandlerAsync("Reset", OnResetDm, null);
+            
             Console.WriteLine("IoT Hub module client initialized.");
             Console.WriteLine($"Device id: '{EnvDeviceId}'");
             Console.WriteLine($"IoT HUB: '{EnvHub}'");
 
-            // get settings from ENV
+            // 
             senderMachine = new SenderMachine(IoTHubModuleClient, ModuleOutput);
+        }
+
+        private static Task<MethodResponse> OnResetDm(MethodRequest methodRequest, object userContext)
+        {
+            Console.WriteLine("Reset DM received");
+            
+            senderMachine.Reset(SenderMachineConfig.GetFromTwin(twin));
+            
+            // Acknowlege the direct method call with a 200 success message
+            string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
+            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
         }
     }
 }
