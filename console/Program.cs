@@ -100,10 +100,17 @@ namespace eh_consumer
             // start timeout
             SetTimeout(TimeoutInterval, cts);
 
-            // Create a ServiceClient to communicate with service-facing endpoint on your hub.
-            serviceClient = ServiceClient.CreateFromConnectionString(IotHubConnectionString);
-            await InvokeReset(DeviceId);
-
+            if (
+                !String.IsNullOrEmpty(IotHubConnectionString)
+                && !String.IsNullOrEmpty(DeviceId)
+            )
+            {
+                // Create a ServiceClient to communicate with service-facing endpoint on your hub.
+                serviceClient = ServiceClient.CreateFromConnectionString(IotHubConnectionString);
+                Console.WriteLine("connected to IoT HUB");                
+                await InvokeReset(DeviceId);
+            }
+            
             // listens to EH messages
             await ReceiveMessagesFromDeviceAsync(cts.Token);
 
@@ -122,7 +129,7 @@ namespace eh_consumer
             // Invoke the direct method asynchronously and get the response from the simulated device.
             var response = await serviceClient.InvokeDeviceMethodAsync(deviceId, "source", methodInvocation);
 
-            Console.WriteLine($"\nResponse status: {response.Status}, payload:\n\t{response.GetPayloadAsJson()}");
+            Console.WriteLine($"\nResponse status: {response.Status}, payload: {response.GetPayloadAsJson()}");
         }
 
         private static void SetTimeout(double interval, CancellationTokenSource cts)
