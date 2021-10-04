@@ -86,8 +86,6 @@ namespace eh_consumer
         {
             GetConfig(args);
 
-            Console.WriteLine("Reading events... Ctrl-C to exit.\n");
-
             // Set up a way for the user to gracefully shutdown
             using var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (sender, eventArgs) =>
@@ -232,9 +230,10 @@ namespace eh_consumer
                     EventHubConnectionString,
                     EventHubName);
 
-            Console.WriteLine("Listening for messages on all partitions.");
-            Console.WriteLine($"Timeout: {TimeoutInterval} ms\n");
             Console.WriteLine($"Discarding messages before {discardBefore.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}\n");
+
+            Console.WriteLine("Listening for messages on all partitions.");
+            Console.WriteLine($"Reading events (timeout={TimeoutInterval}ms)... ctrl-C to exit.\n");
 
             try
             {
