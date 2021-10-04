@@ -33,5 +33,12 @@ namespace eh_consumer
             Default = "60000",
             HelpText = "If a new message is not received within this timeout, the app exits")]
         public string Timeout { get; set; }
+
+        [Option(
+            "show-msg",
+            Required = false,
+            Default = false,
+            HelpText = "Show received messages")]
+        public bool ShowMsg { get; set; }
     }
 }
