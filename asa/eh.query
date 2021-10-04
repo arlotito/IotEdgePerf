@@ -5,20 +5,21 @@ stage1 as
         IoTHub.EnqueuedTime AS IoTHubEnqueuedTime,
         EventEnqueuedUtcTime AS ASAEnqueuedTime,
         IoTHub.ConnectionDeviceId as device_id,
-        counter,
-        total,
-        runId,
+        runId,runMsgTotal,runMsgCounter,runElapsed,
+        burstCounter,burstLength,burstMsgCounter,burstElapsed,
         ts AS device_epoch,
-        DATEADD(millisecond, ts, '1970-01-01T00:00:00Z') AS device_ts
+        DATEADD(millisecond, ts, '1970-01-01T00:00:00Z') AS device_ts,
+        DATEDIFF(millisecond, '1970-01-01T00:00:00Z', CAST(IoTHub.EnqueuedTime AS DATETIME)) AS iothub_epoch,
+        DATEDIFF(millisecond, '1970-01-01T00:00:00Z', CAST(EventEnqueuedUtcTime AS DATETIME)) AS asa_epoch
     FROM hub 
 ),
 stage2 as
 (
     SELECT
         device_id,
-        counter,
-        total,
-        runId,
+        runId,runMsgTotal,runMsgCounter,runElapsed,
+        burstCounter,burstLength,burstMsgCounter,burstElapsed,
+        iothub_epoch,asa_epoch,
         device_ts,
         DATEDIFF (millisecond, device_ts, IoTHubEnqueuedTime) AS Latency
     FROM stage1 
@@ -27,17 +28,26 @@ stage2 as
 SELECT
     System.Timestamp() t,
     runId,
+    burstCounter,
     MIN(device_ts) AS firstMsgTs,
     MAX(device_ts) AS lastMsgTs,
-    MAX(counter) AS counter,
-    MAX(total) AS total,
-    COUNT(*) AS messagesCount,
-    COUNT(*)/5 AS estimatedRate,
-    AVG(Latency) AS avgLatency,
-    MIN(Latency) AS minLatency,
-    MAX(Latency) AS maxLatency 
+    MIN(iothub_epoch) AS firstIotHubEpoch,
+    MAX(iothub_epoch) AS lastIotHubEpoch,
+    MAX(runMsgTotal) AS asaRunMsgTotal,
+    MAX(runMsgCounter) AS asaRunMsgCounter,
+    MAX(runElapsed) AS asaRunElapsed,
+    MAX(burstLength) AS asaBurstLength,
+    MAX(burstMsgCounter) AS asaBurstMsgCounter,
+    MAX(burstElapsed) AS asaBurstElapsed,
+    COUNT(*) AS asaMsgCount,
+    COUNT(*) / 5 AS asaEstimatedRate,
+    CAST( COUNT(*) AS float) / (MAX(iothub_epoch) - MIN(iothub_epoch)) * 1000 AS asaEstimatedRateIotHub,
+    CAST( COUNT(*) AS float) / (MAX(asa_epoch) - MIN(asa_epoch)) * 1000 AS asaEstimatedRateAsa,
+    AVG(Latency) AS asaAvgLatency,
+    MIN(Latency) AS asaMinLatency,
+    MAX(Latency) AS asaMaxLatency 
 INTO
     eventhub
 FROM
     stage2
-GROUP BY runId, TumblingWindow(second, 5)
+GROUP BY runId, burstCounter, TumblingWindow(second, 5)
