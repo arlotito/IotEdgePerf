@@ -6,6 +6,7 @@
     <RootNamespace>IotEdgePerf.ConsoleApp</RootNamespace>
     <PublishSingleFile>true</PublishSingleFile>
     <NoWarn>$(NoWarn);NU1605</NoWarn>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

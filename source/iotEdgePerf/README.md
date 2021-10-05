@@ -12,8 +12,9 @@ dotnet run -- -n "rate" -c "Endpoint=sb://arlotitoxyz.servicebus.windows.net/;Sh
 
 # build
 ```bash
-dotnet build -r linux-x64
-dotnet publish -r linux-x64 --configuration Release
+dotnet build -r linux-x64 
+dotnet run -r linux-x64 
+dotnet publish -r linux-x64 --configuration Release 
 cp bin/Release/net5.0/linux-x64/publish/iotEdgePerf $HOME
 ```
 
