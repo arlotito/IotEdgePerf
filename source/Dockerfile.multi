@@ -1,0 +1,21 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build-env
+
+COPY ./source/transmitter /app/transmitter
+COPY ./source/Tools /app/Tools
+COPY ./source/Shared /app/Shared
+
+WORKDIR /app/transmitter
+RUN dotnet restore
+
+# Set UseAppHost=false to avoid creating a rid specific executable.
+# Without this, the executable would be linux-amd64 specific.
+RUN dotnet publish -c Release -o out /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1
+WORKDIR /app
+COPY --from=build-env /app/transmitter/out ./
+
+RUN useradd -ms /bin/bash moduleuser
+USER moduleuser
+
+ENTRYPOINT ["dotnet", "transmitter.dll"]
