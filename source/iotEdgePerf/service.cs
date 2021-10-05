@@ -26,7 +26,7 @@ namespace IoTEdgePerf.Service
         // Invoke the direct method on the device, passing the payload
         public async Task Start(Guid runId, TransmitterConfigData config)
         {
-            Console.WriteLine($"Starting {this.deviceId}...");
+            Console.WriteLine($"Invoking 'Start' dm on device '{this.deviceId}'...");
             
             var methodInvocation = new CloudToDeviceMethod("Start")
             {
@@ -50,7 +50,7 @@ namespace IoTEdgePerf.Service
 
         public async Task Restart(Guid runId)
         {
-            Console.WriteLine($"Re-starting {this.deviceId}...");
+            Console.WriteLine($"Invoking 'Restart' dm on device '{this.deviceId}'...");
             
             var methodInvocation = new CloudToDeviceMethod("Restart")
             {

@@ -110,7 +110,7 @@ namespace IotEdgePerf.ConsoleApp
                     EventHubConnectionString,
                     EventHubName);
 
-            Console.WriteLine($"Discarding messages before {discardBefore.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}\n");
+            //Console.WriteLine($"Discarding messages before {discardBefore.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}\n");
 
             Console.WriteLine("Listening for messages on all partitions.");
             Console.WriteLine($"Reading events (timeout={TimeoutInterval}ms)... ctrl-C to exit.\n");

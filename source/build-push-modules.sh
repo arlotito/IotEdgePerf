@@ -2,8 +2,8 @@
 
 HUB_NAME=arturol76-s1-benchmark
 DEVICE_NAME=standard-ds3-v2-edge-1-2-1631626847
-deploymentManifestTemplate="./manifests/deployment.no-metrics.twin.template.json"
-deploymentManifest="./manifests/deployment.no-metrics.twin.json"
+deploymentManifestTemplate="../manifests/deployment.template.json"
+deploymentManifest="../manifests/deployment.json"
 
 # docker buildx create --use cross-platform-build
 docker buildx use cross-platform-build
@@ -17,6 +17,7 @@ echo $new_build > BUILD
 export upstream='$upstream'
 export edgeAgent='$edgeAgent'
 export edgeHub='$edgeHub'
+export MaxUpstreamBatchSize="200"
 export BUILD=$new_build
 cat $deploymentManifestTemplate | envsubst > $deploymentManifest
 

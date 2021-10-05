@@ -129,6 +129,7 @@ namespace IoTEdgePerf.Transmitter
         {
             if (ResetRequest)
             {
+                Console.WriteLine("Reset executed.\n");
                 MachineReset();
                 ResetRequest = false;
             }
@@ -147,8 +148,7 @@ namespace IoTEdgePerf.Transmitter
 
                 if (ResetRequest)
                 {
-                    Console.WriteLine("Reset requested\n");
-                    ResetRequest = false;
+                    Console.WriteLine("Transmission stopped.\n");
                     return;
                 }
 
