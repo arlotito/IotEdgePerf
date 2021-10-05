@@ -36,9 +36,9 @@ namespace IotEdgePerf.ConsoleApp
 
         [Option(
             "device-id",
-            Required = true,
+            Required = false,
             Default = "",
-            HelpText = "The device id")]
+            HelpText = "The device id. \nIf you prefer, you can use the env var DEVICE_ID instead.")]
         public string DeviceId { get; set; }
 
         [Option(
@@ -105,6 +105,22 @@ namespace IotEdgePerf.ConsoleApp
             Default = 1,
             HelpText = "Batch size")]
         public int batchSize { get; set; }
+
+        [Option(
+            'o',
+            "output-csv-file",
+            Required = false,
+            Default = "test.csv",
+            HelpText = "Output file for test results. CSV. If already existing, results will be appended.")]
+        public string csvOutputFile { get; set; }
+
+        [Option(
+            'l',
+            "test-label",
+            Required = false,
+            Default = "test",
+            HelpText = "Custom label that will be added to the output results.")]
+        public string TestLabel { get; set; }
     }
 
     partial class Program
@@ -142,6 +158,12 @@ namespace IotEdgePerf.ConsoleApp
                 IotHubConnectionString = _parameters.IotHubConnectionString;
             }
 
+            DeviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
+            if (!string.IsNullOrEmpty(_parameters.DeviceId))
+            {
+                DeviceId = _parameters.DeviceId;
+            }
+
             // check if EH info is provided
             if (string.IsNullOrWhiteSpace(EventHubConnectionString)
                 || string.IsNullOrWhiteSpace(EventHubName))
@@ -152,8 +174,9 @@ namespace IotEdgePerf.ConsoleApp
 
             double.TryParse(_parameters.Timeout, out TimeoutInterval);
             ShowMsg = _parameters.ShowMsg;
-            DeviceId = _parameters.DeviceId;
-
+            CsvFile = _parameters.csvOutputFile;
+            TestLabel = _parameters.TestLabel;
+            
             transmitterConfig = new TransmitterConfigData {
                 enable = true,
                 burstLength=_parameters.burstLength,

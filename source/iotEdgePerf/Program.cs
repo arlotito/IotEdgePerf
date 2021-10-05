@@ -35,6 +35,9 @@ namespace IotEdgePerf.ConsoleApp
         private static TransmitterConfigData transmitterConfig;
         private static Analyzer analyzer;
 
+        private static string CsvFile;
+        private static string TestLabel;
+
         public static async Task Main(string[] args)
         {
             GetConfig(args);
@@ -62,9 +65,14 @@ namespace IotEdgePerf.ConsoleApp
                 // Apply config
                 await monitorService.Start(Guid.NewGuid(), transmitterConfig);
             }
+            else
+            {
+                Console.WriteLine("ERROR: IotHubConnectionString and/or DeviceId are empty.");
+                return;
+            }
 
             // 
-            analyzer = new Analyzer();
+            analyzer = new Analyzer(transmitterConfig, CsvFile, TestLabel);
           
             // listens to EH messages
             await ReceiveMessagesFromDeviceAsync(cts.Token);
@@ -87,6 +95,7 @@ namespace IotEdgePerf.ConsoleApp
             Console.WriteLine("\nTimeout elapsed.");
             cts.Cancel();
 
+            Console.WriteLine("\nThis analysis may be partial.");
             analyzer.Do();
         }
 
@@ -105,6 +114,8 @@ namespace IotEdgePerf.ConsoleApp
 
             Console.WriteLine("Listening for messages on all partitions.");
             Console.WriteLine($"Reading events (timeout={TimeoutInterval}ms)... ctrl-C to exit.\n");
+
+            Console.WriteLine("");
 
             try
             {
@@ -131,10 +142,21 @@ namespace IotEdgePerf.ConsoleApp
                             if (ShowMsg)
                                 Console.WriteLine(data);
                             else
-                                Console.Write(".");
+                            {
+                                double percentage = (msg.asaRunMsgCounter / msg.asaRunMsgTotal) * 100;
+                                Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                Console.WriteLine($"{percentage:000.0}% - {msg.asaRunMsgTotal}/{msg.asaRunMsgCounter}");
+                            }
 
                             // add for analysis
                             analyzer.Add(msg);
+
+                            if (msg.asaRunMsgCounter == msg.asaRunMsgTotal)
+                            {
+                                Console.WriteLine("Completed.");
+                                analyzer.Do();
+                                return;
+                            }
                         }
                         else
                         {
