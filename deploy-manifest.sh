@@ -9,7 +9,6 @@ deploymentManifest="./manifests/deployment.json"
 # az login
 
 build=$(cat ./source/BUILD)
-echo $build > BUILD
 
 export upstream='$upstream'
 export edgeAgent='$edgeAgent'
