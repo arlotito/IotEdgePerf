@@ -29,7 +29,7 @@
             },
             "env": {
               "MaxUpstreamBatchSize": {
-                "value": "200"
+                "value": "10"
               }
             }
           }

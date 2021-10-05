@@ -1,8 +1,8 @@
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build-env
 
-COPY ./source/transmitter /app/transmitter
-COPY ./source/Tools /app/Tools
-COPY ./source/Shared /app/Shared
+COPY ./transmitter /app/transmitter
+COPY ./Tools /app/Tools
+COPY ./Shared /app/Shared
 
 WORKDIR /app/transmitter
 RUN dotnet restore

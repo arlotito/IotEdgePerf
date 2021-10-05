@@ -5,7 +5,7 @@ using System;
 using CommandLine;
 using IoTEdgePerf.Shared;
 
-namespace monitor
+namespace IotEdgePerf.ConsoleApp
 {
     /// <summary>
     /// Parameters for the application

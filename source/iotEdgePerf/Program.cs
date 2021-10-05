@@ -13,7 +13,7 @@ using IoTEdgePerf.Service;
 using IoTEdgePerf.Shared;
 using IoTEdgePerf.Analysis;
 
-namespace monitor
+namespace IotEdgePerf.ConsoleApp
 {
     partial class Program
     {

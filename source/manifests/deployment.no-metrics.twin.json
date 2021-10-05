@@ -29,7 +29,7 @@
             },
             "env": {
               "MaxUpstreamBatchSize": {
-                "value": "200"
+                "value": "10"
               }
             }
           }
@@ -41,7 +41,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "arlotito/source:0.3.11-twin-46",
+              "image": "arlotito/source:0.3.11-twin-",
               "createOptions": "{}"
             },
             "env": {}
