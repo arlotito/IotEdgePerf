@@ -14,32 +14,36 @@ export upstream='$upstream'
 export edgeAgent='$edgeAgent'
 export edgeHub='$edgeHub'
 export MaxUpstreamBatchSize="${3}"
-export BUILD=$new_build
+export BUILD=$build
 cat $deploymentManifestTemplate | envsubst > $deploymentManifest
 
 
-az iot edge set-modules \
-        -n $HUB_NAME \
-        -d $DEVICE_NAME \
-        --content $deploymentManifest
+echo "deploying manifest '$deploymentManifest'..."
+result=$(az iot edge set-modules \
+    -n $HUB_NAME \
+    -d $DEVICE_NAME \
+    --content $deploymentManifest)
 
 # restart edgeHub
-az iot hub invoke-module-method --method-name 'RestartModule' -n $HUB_NAME -d $DEVICE_NAME -m '$edgeAgent' --method-payload \
+echo "restarting edgeHub module..."
+result=$(az iot hub invoke-module-method --method-name 'RestartModule' -n $HUB_NAME -d $DEVICE_NAME -m '$edgeAgent' --method-payload \
 '
     {
         "schemaVersion": "1.0",
         "id": "edgeHub"
     }
-'
+')
 
 # restart source
-az iot hub invoke-module-method --method-name 'RestartModule' -n $HUB_NAME -d $DEVICE_NAME -m '$edgeAgent' --method-payload \
+echo "restarting source module..."
+result=$(az iot hub invoke-module-method --method-name 'RestartModule' -n $HUB_NAME -d $DEVICE_NAME -m '$edgeAgent' --method-payload \
 '
     {
         "schemaVersion": "1.0",
         "id": "source"
     }
-'
+')
 
 # wait
+echo "waiting 10s for the module to start..."
 sleep 10
