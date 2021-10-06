@@ -1,2 +1,6 @@
 .vs/
 local/
+*secrets.*
+iotEdgePerf
+iotEdgePerf.*
+*.csv
