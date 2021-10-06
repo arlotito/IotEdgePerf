@@ -25,11 +25,14 @@
             "restartPolicy": "always",
             "settings": {
               "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
-              "createOptions": "{}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/iotedge:/tmp/edgeHub\"]}}"
             },
             "env": {
               "MaxUpstreamBatchSize": {
                 "value": "$MaxUpstreamBatchSize"
+              },
+              "storageFolder": {
+                "value": "/iotedge"
               }
             }
           }
