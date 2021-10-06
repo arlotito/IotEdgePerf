@@ -25,11 +25,17 @@
             "restartPolicy": "always",
             "settings": {
               "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
-              "createOptions": "{}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/iotedge:/tmp/edgeHub\"]}}"
             },
             "env": {
               "MaxUpstreamBatchSize": {
-                "value": "200"
+                "value": "$MaxUpstreamBatchSize"
+              },
+              "storageFolder": {
+                "value": "/iotedge"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             }
           }
@@ -41,7 +47,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "arlotito/source:0.3.11-twin-",
+              "image": "arlotito/source:0.3.11-twin-$BUILD",
               "createOptions": "{}"
             },
             "env": {}

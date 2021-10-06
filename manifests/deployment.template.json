@@ -33,6 +33,9 @@
               },
               "storageFolder": {
                 "value": "/iotedge"
+              },
+              "RuntimeLogLevel": {
+                "value": "info"
               }
             }
           }
