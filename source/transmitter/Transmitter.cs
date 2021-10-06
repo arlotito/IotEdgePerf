@@ -52,7 +52,7 @@ namespace IoTEdgePerf.Transmitter
             this.Restart(runId);
         }
 
-        private void MachineReset()
+        private void Reset()
         {
             transmissionStopwatch = new Stopwatch(); //measures the transmission duration
             burstStopwatch = new Stopwatch(); // measures time during burst
@@ -130,7 +130,7 @@ namespace IoTEdgePerf.Transmitter
             if (ResetRequest)
             {
                 Console.WriteLine("Reset executed.\n");
-                MachineReset();
+                Reset();
                 ResetRequest = false;
             }
 
