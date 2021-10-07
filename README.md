@@ -46,10 +46,11 @@ export EH_NAME="iotedgeperf"
 export EH_CONN_STRING="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxx"
 ```
 
-Deploy the transmitter module (setting the "MaxUpstreamBatchSize"=200):
+Deploy the transmitter module:
 ```bash
 ./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200
 ```
+That sets "MaxUpstreamBatchSize" to 200. Change it to your needs.
 
 Run the test:
 ```bash
