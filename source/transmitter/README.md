@@ -1,6 +1,6 @@
-Docker image available here: [arlotito/edge-sim-source](https://hub.docker.com/repository/docker/arlotito/edge-sim-source) 
+Docker image available here: [arlotito/iotedgeperf-transmitter](https://hub.docker.com/repository/docker/arlotito/iotedgeperf-transmitter) 
 
-![for easy](https://img.shields.io/docker/v/arlotito/edge-sim-source)
+![for easy](https://img.shields.io/docker/v/arlotito/iotedgeperf-transmitter)
 
 # Overview
 An IoT Edge module to generate parametric traffic:
