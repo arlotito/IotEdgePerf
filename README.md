@@ -11,20 +11,33 @@ Useful for:
 
 The framework includes:
 
-* a [transmitter](./source/transmitter/README.md) (1) module, to generate traffic (![for easy](https://img.shields.io/docker/v/arlotito/iotedgeperf-transmitter))
+* a [transmitter](./source/transmitter/README.md) (1) module, to generate traffic ([![for easy](https://img.shields.io/docker/v/arlotito/iotedgeperf-transmitter)](https://hub.docker.com/repository/docker/arlotito/iotedgeperf-transmitter))
 * an [ASA query](./asa/) (2), to measure the ingestion latency and rate
 * the [iotEdgePerf](./source/iotEdgePerf) (3) CLI app, to control the transmitter, to analyze the data produced by the ASA job and show the results
 
-## Getting started
+# Getting started
 Pre-requisites:
 * a TEST device (VM or real HW) provisioned with IoT Edge 1.1/1.2
 * a linux DEV machine 
 * IoT HUB, ASA job, event hub
 * optional: log analytics workspace
 
-From the DEV machine: 
+## Prep the IoT Edge
+Create the '/iotedge' folder (will be used to bind the edgeHub's folder): 
+```bash
+sudo mkdir /iotedge
+sudo chown 1000 /iotedge
+sudo chmod 700 /iotedge
+```
 
-Export some variables (change ):
+## Build the iotEdgePerf tool
+On the DEV machine, build the iotEdgePerfTool (as a self-contained binary):
+```bash
+dotnet publish ./source/iotEdgePerf/iotEdgePerf.csproj -r linux-x64 -p:PublishSingleFile=true --configuration Release -o .
+```
+
+## Execute the tests
+On the DEV machine, export some variables (change ):
 ```bash
 export IOT_HUB_NAME="my-iot-hub"
 export DEVICE_ID="edge-device-id"
