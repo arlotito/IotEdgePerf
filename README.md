@@ -29,6 +29,10 @@ sudo mkdir /iotedge
 sudo chown 1000 /iotedge
 sudo chmod 700 /iotedge
 ```
+At any time you can check the size consumed by the edgeHub queue with:
+```bash
+du -hd1 /iotedge
+```
 
 ## Build the iotEdgePerf tool
 On the DEV machine, build the iotEdgePerfTool (as a self-contained binary):
