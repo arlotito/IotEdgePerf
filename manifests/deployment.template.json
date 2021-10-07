@@ -47,7 +47,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "arlotito/source:0.3.11-twin-$BUILD",
+              "image": "$IMAGE",
               "createOptions": "{}"
             },
             "env": {}
