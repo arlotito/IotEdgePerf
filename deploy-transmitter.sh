@@ -23,6 +23,9 @@ result=$(az iot edge set-modules \
     -d $DEVICE_NAME \
     --content $deploymentManifest)
 
+# remove deployment manifest
+rm $deploymentManifest
+
 # restart edgeHub
 echo "restarting edgeHub module..."
 result=$(az iot hub invoke-module-method --method-name 'RestartModule' -n $HUB_NAME -d $DEVICE_NAME -m '$edgeAgent' --method-payload \
