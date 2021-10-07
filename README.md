@@ -37,7 +37,7 @@ dotnet publish ./source/iotEdgePerf/iotEdgePerf.csproj -r linux-x64 -p:PublishSi
 ```
 
 ## Execute the tests
-On the DEV machine, export some variables (change ):
+On the DEV machine (change to match yours):
 ```bash
 export IOT_HUB_NAME="my-iot-hub"
 export DEVICE_ID="edge-device-id"
