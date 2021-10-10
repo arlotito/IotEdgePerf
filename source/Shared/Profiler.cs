@@ -21,7 +21,7 @@ namespace IotEdgePerf.Profiler
         double?  _previousTransmissionDurationMilliseconds;
         double?  _previousMessageCycleDurationMilliseconds;
         double _messageTimestampMilliseconds;
-        double _rollingRate;
+        double? _rollingRate;
         int     _timingViolationsCounter;
 
         public Profiler()
@@ -41,26 +41,26 @@ namespace IotEdgePerf.Profiler
 
         public void MessageCycleStart()
         {
-            if (_messageSequenceNumberInSession == 0)
+            this._messageSequenceNumberInSession++;
+            this._messageTimestampMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            
+            if (_messageSequenceNumberInSession == 1)
             {
                 // this is the 1st message of the session
                 this._sessionStopwatch.Restart();
+                this._sessionElapsedMilliseconds = 0;
                 this._previousMessageCycleDurationMilliseconds = null;
-                this._sessionElapsedMilliseconds = GetSessionElapsedMilliseconds();
+                this._rollingRate = null;
             }
             else
             {
                 this._previousMessageCycleDurationMilliseconds = this._messageCycleStopwatch.Elapsed.TotalMilliseconds;
                 this._sessionElapsedMilliseconds = GetSessionElapsedMilliseconds();
+                this._rollingRate = ((this._messageSequenceNumberInSession-1) / this._sessionElapsedMilliseconds) * 1000;
             }
 
             this._messageCycleStopwatch.Restart();
-            this._messageSequenceNumberInSession++;
-
-            this._rollingRate = ((this._messageSequenceNumberInSession-1) / this._sessionElapsedMilliseconds) * 1000;
-
-            this._messageTimestampMilliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-
+            
             Log.Debug("profiler: cycle start. seq: {0}, ts: {1}, prev cycle duration: {2}, session elapsed: {3}, rolling rate: {4}", 
                     this._messageSequenceNumberInSession,
                     this._messageTimestampMilliseconds,
@@ -79,16 +79,6 @@ namespace IotEdgePerf.Profiler
             this._transmissionStopwatch.Stop();
             this._previousTransmissionDurationMilliseconds = this._transmissionStopwatch.Elapsed.TotalMilliseconds;
             Log.Debug("profiler: transmission completed. transmission durarion: {0}", this._previousTransmissionDurationMilliseconds);
-        }
-
-        public double? GetPreviousMessageTransmissionDuration()
-        {
-            return this._previousTransmissionDurationMilliseconds;
-        }
-
-        public double? GetPreviousMessageCycleDuration()
-        {
-            return this._previousMessageCycleDurationMilliseconds;
         }
 
         public double GetCurrentMessageCycleElapsed()
@@ -128,7 +118,11 @@ namespace IotEdgePerf.Profiler
 
         public void ShowSessionSummary()
         {
-            Log.Error("ShowSessionSummary: not implemented yet.");
+            Log.Information("profiler: session completed. seq: {0}, session elapsed: {1}, rolling rate: {2}", 
+                    this._messageSequenceNumberInSession,
+                    this._sessionElapsedMilliseconds,
+                    this._rollingRate
+            );
         }
 
         public PerfTelemetryMessage DoProfiling()
@@ -143,8 +137,8 @@ namespace IotEdgePerf.Profiler
                 sessionRollingRate = this._rollingRate,
 
                 messageTimestampMilliseconds    = this._messageTimestampMilliseconds,
-                previousTransmissionDurationMilliseconds = GetPreviousMessageTransmissionDuration(),
-                previousMessageCycleDurationMilliseconds = GetPreviousMessageCycleDuration(),
+                previousTransmissionDurationMilliseconds = this._previousTransmissionDurationMilliseconds,
+                previousMessageCycleDurationMilliseconds = this._previousMessageCycleDurationMilliseconds,
 
                 timingViolationsCounter = this._timingViolationsCounter
             };

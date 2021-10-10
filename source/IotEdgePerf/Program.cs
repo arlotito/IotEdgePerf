@@ -24,9 +24,9 @@ namespace IotEdgePerf.ConsoleApp
 
         private static System.Timers.Timer _timeout;
 
-        private static bool _showMsg;
+        private static bool _showMsg = true;
 
-        
+
 
         private static string _iotHubConnectionString = "";
         private static string _deviceId = "";
@@ -73,7 +73,7 @@ namespace IotEdgePerf.ConsoleApp
 
             // 
             _analyzer = new Analyzer(_transmitterConfigData, _csvFile, _customLabel);
-          
+
             // listens to EH messages
             await ReceiveMessagesFromDeviceAsync(cts.Token);
 
@@ -104,7 +104,7 @@ namespace IotEdgePerf.ConsoleApp
         private static async Task ReceiveMessagesFromDeviceAsync(CancellationToken ct)
         {
             DateTime discardBefore = DateTime.Now;
-            
+
             await using var consumer = new EventHubConsumerClient(
                     EventHubConsumerClient.DefaultConsumerGroupName,
                     _eventHubConnectionString,
@@ -128,61 +128,61 @@ namespace IotEdgePerf.ConsoleApp
                     //Console.WriteLine($"\nMessage received on partition {partitionEvent.Partition.PartitionId}:");
 
                     string data = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
-                    
+                    string[] lines = data.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
-                    try
+                    foreach (var line in lines)
                     {
-                        var msg = JsonConvert.DeserializeObject<AsaMessage>(data);
-                        
-                        //do not show old messages
-                        DateTime t = DateTime.Parse(msg.t);
-
-                        if (DateTime.Compare(t, discardBefore) > 0)
+                        try
                         {
-                            _timeout.Stop();
-                            _timeout.Start();
+                            var msg = JsonConvert.DeserializeObject<AsaMessage>(line);
 
-                            if (_showMsg)
-                                Console.WriteLine(data);
+                            //do not show old messages
+                            DateTime t = DateTime.Parse(msg.t);
+
+                            if (DateTime.Compare(t, discardBefore) > 0)
+                            {
+                                _timeout.Stop();
+                                _timeout.Start();
+
+                                if (_showMsg)
+                                    Console.WriteLine($"Received: {line}");
+                                else
+                                {
+                                    double percentage = (msg.messageSequenceNumberInSession / expectedMessageCount) * 100;
+                                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                    Console.WriteLine($"{percentage:000.0}% - {msg.messageSequenceNumberInSession}/{expectedMessageCount}");
+                                }
+
+                                // add for analysis
+                                _analyzer.Add(msg);
+
+                                if (msg.messageSequenceNumberInSession == expectedMessageCount)
+                                {
+                                    Console.WriteLine("Completed.");
+                                    _analyzer.AnalyzeData();
+                                    return;
+                                }
+                            }
                             else
                             {
-                                double percentage = (msg.messageSequenceNumberInSession / expectedMessageCount) * 100;
-                                Console.SetCursorPosition(0, Console.CursorTop - 1);
-                                Console.WriteLine($"{percentage:000.0}% - {msg.messageSequenceNumberInSession}/{expectedMessageCount}");
-                            }
-
-                            // add for analysis
-                            _analyzer.Add(msg);
-
-                            if (msg.messageSequenceNumberInSession == expectedMessageCount)
-                            {
-                                Console.WriteLine("Completed.");
-                                _analyzer.AnalyzeData();
-                                return;
+                                // discarded
                             }
                         }
-                        else
+
+                        catch (Newtonsoft.Json.JsonReaderException e)
                         {
-                            // discarded
+                            Console.WriteLine($"JsonReaderException error on: {data}");
+                            Console.WriteLine($"{e}");
+                            Console.WriteLine($"{e.Message}");
+                        }
+
+                        catch (Newtonsoft.Json.JsonSerializationException e)
+                        {
+                            Console.WriteLine($"JsonSerializationException error on: {data}");
+                            Console.WriteLine($"{e}");
+                            Console.WriteLine($"{e.Message}");
                         }
                     }
-
-                    catch (Newtonsoft.Json.JsonReaderException e)
-                    {
-
-                        Console.WriteLine($"Serialization error on: {data}");
-                        Console.WriteLine($"{e}");
-                        Console.WriteLine($"{e.Message}");
-                    }
-
-                    catch (Newtonsoft.Json.JsonSerializationException e)
-                    {
-                        Console.WriteLine($"Serialization error on: {data}");
-                        Console.WriteLine($"{e}");
-                        Console.WriteLine($"{e.Message}");
-                    }
-
-
                 }
             }
 

@@ -10,27 +10,22 @@ namespace IotEdgePerf.Shared
         public double lastMessageEpoch;
         public double firstIotHubEpoch;
         public double lastIotHubEpoch;
-        public double minRollingRate;
-        public double maxRollingRate;
-        public double avgRollingRate;
-        public float messageSequenceNumberInSession;
-        public float asaTimingViolationsCounter;
-        public float minTransmissionDuration;
-        public float maxTransmissionDuration;
-        public float avgTransmissionDuration;
-        public float minCycleDuration;
-        public float maxCycleDuration;
-        public float avgCycleDuration;
-        public float asaMessageCount;
-        public float asaEstimatedRate;
-        public float asaEstimatedRateIotHub;
-        public float asaEstimatedRateAsa;
-        public float avgDeviceToHubLatency;
-        public float minDeviceToHubLatency;
-        public float maxDeviceToHubLatency;
-        public float avgHubToAsaLatency;
-        public float minHubToAsaLatency;
-        public float maxHubToAsaLatency;
+        public double? sessionRollingRate;
+        public double messageSequenceNumberInSession;
+        public double asaTimingViolationsCounter;
+        public double? minTransmissionDuration;
+        public double? maxTransmissionDuration;
+        public double? avgTransmissionDuration;
+        public double? minCycleDuration;
+        public double? maxCycleDuration;
+        public double? avgCycleDuration;
+        public double asaMessageCount;
+        public double avgDeviceToHubLatency;
+        public double minDeviceToHubLatency;
+        public double maxDeviceToHubLatency;
+        public double avgHubToAsaLatency;
+        public double minHubToAsaLatency;
+        public double maxHubToAsaLatency;
     }
 }
 

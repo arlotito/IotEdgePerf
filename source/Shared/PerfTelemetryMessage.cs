@@ -7,7 +7,7 @@ namespace IotEdgePerf.Shared
         public string   sessionId;
         public double   sessionTimeElapsedMilliseconds;
 
-        public double   sessionRollingRate;
+        public double?  sessionRollingRate;
 
         public int      messageSequenceNumberInSession;
 

@@ -29,7 +29,7 @@ namespace IotEdgePerf.Analysis
 
         public void AnalyzeData()
         {
-            bool logBurstDetails = false;
+            //bool logBurstDetails = false;
 
             // order by asa timestamp
             _messagesList.OrderBy(msg => msg.t);
@@ -40,8 +40,7 @@ namespace IotEdgePerf.Analysis
                         orderby sessionGroup.Key ascending
                         select sessionGroup;
 
-            
-                // perform analysis
+            // perform analysis
             foreach (var sessionGroup in query)
             {
                 AsaMessage firstAsaMessage = sessionGroup.First();
@@ -51,26 +50,24 @@ namespace IotEdgePerf.Analysis
                 //source
                 var firstMessageEpoch = firstAsaMessage.firstMessageEpoch;
                 var lastMessageEpoch = lastAsaMessage.lastMessageEpoch;
-                double sessionDuration = lastMessageEpoch - firstMessageEpoch;
-                double avgRateSource = lastAsaMessage.messageSequenceNumberInSession / sessionDuration * 1000;
-                double avgRateReported = sessionGroup.Average(item => item.avgRollingRate);
-                double minRateReported = sessionGroup.Min(item => item.minRollingRate);
-                double maxRateReported = sessionGroup.Max(item => item.maxRollingRate);
-                double asaTimingsViolationsCount = sessionGroup.Max(item => item.asaTimingViolationsCounter);
-                double avgTransmissionDuration = sessionGroup.Average(item => item.avgTransmissionDuration);
-                double minTransmissionDuration = sessionGroup.Min(item => item.minTransmissionDuration);
-                double maxTransmissionDuration = sessionGroup.Max(item => item.maxTransmissionDuration);
-                double avgCycleDuration = sessionGroup.Average(item => item.avgCycleDuration);
-                double minCycleDuration = sessionGroup.Min(item => item.minCycleDuration);
-                double maxCycleDuration = sessionGroup.Max(item => item.maxCycleDuration);
+                double sessionDeviceDuration = lastMessageEpoch - firstMessageEpoch;
+                double? deviceRollingRate = lastAsaMessage.sessionRollingRate;
+                double? asaTimingsViolationsCount = sessionGroup.Max(item => item.asaTimingViolationsCounter);
+                double? avgTransmissionDuration = sessionGroup.Average(item => item.avgTransmissionDuration);
+                double? minTransmissionDuration = sessionGroup.Min(item => item.minTransmissionDuration);
+                double? maxTransmissionDuration = sessionGroup.Max(item => item.maxTransmissionDuration);
+                double? avgCycleDuration = sessionGroup.Average(item => item.avgCycleDuration);
+                double? minCycleDuration = sessionGroup.Min(item => item.minCycleDuration);
+                double? maxCycleDuration = sessionGroup.Max(item => item.maxCycleDuration);
                 
                 double iotHubMessageCount = sessionGroup.Sum(item => item.asaMessageCount);
                 var firstIotHubMessageEpoch = firstAsaMessage.firstIotHubEpoch;
                 var lastIotHubMessageEpoch = lastAsaMessage.lastIotHubEpoch;
-                double sessiosIotHubDuration = lastIotHubMessageEpoch - firstIotHubMessageEpoch;
-                double asaEstimatedRate = lastAsaMessage.asaEstimatedRate;
-                double asaEstimatedRateIotHub = lastAsaMessage.asaEstimatedRateIotHub;
-                double asaEstimatedRateAsa = lastAsaMessage.asaEstimatedRateAsa;
+                double sessionIotHubDuration = lastIotHubMessageEpoch - firstIotHubMessageEpoch;
+                
+                //double asaEstimatedRate         = lastAsaMessage.messageSequenceNumberInSession / ;
+                double asaEstimatedRateIotHub   = lastAsaMessage.messageSequenceNumberInSession / sessionIotHubDuration * 1000;
+                //double asaEstimatedRateAsa      = lastAsaMessage.messageSequenceNumberInSession / sessiosIotHubDuration;
                 
 
                 double avgDeviceToHubLatency = sessionGroup.Average(item => item.avgDeviceToHubLatency);
@@ -92,7 +89,7 @@ namespace IotEdgePerf.Analysis
                 
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.SetCursorPosition(0, Console.CursorTop);
-                Console.Write($"{maxRateReported:0.00} [msg/s]");
+                Console.Write($"{deviceRollingRate:0.00} [msg/s]");
                 Console.SetCursorPosition(44, Console.CursorTop);
                 Console.Write($"{asaEstimatedRateIotHub:0.00} [msg/s]");
                 Console.SetCursorPosition(64, Console.CursorTop);
@@ -101,16 +98,17 @@ namespace IotEdgePerf.Analysis
                 Console.WriteLine("");
 
                 Console.WriteLine("");
+                Console.WriteLine($"session ID:                             {lastAsaMessage.sessionId}");
                 Console.WriteLine($"message count:                          {lastAsaMessage.messageSequenceNumberInSession} [msg]");
                 Console.WriteLine($"msgSize:                                {_config.payloadLength} [bytes]");
                 Console.WriteLine("");
                 Console.WriteLine($"SOURCE:");
                 Console.WriteLine($"    fist msg epoch:                         {firstMessageEpoch} [epoch ms]");
                 Console.WriteLine($"    last msg epoch:                         {lastMessageEpoch} [epoch ms]");
-                Console.WriteLine($"    session duration:                       {sessionDuration} [ms]");
+                Console.WriteLine($"    session duration:                       {sessionDeviceDuration} [ms]");
                 //Console.WriteLine($"    rate (calculated):              {avgRateSource:0.0} [msg/s]");
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"    rate at device egress:                  {maxRateReported:0.00} [msg/s]");
+                Console.WriteLine($"    rate at device egress:                  {deviceRollingRate:0.00} [msg/s]");
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine($"    avg (min/max) transmission duration:    {avgTransmissionDuration:0.00} ({minTransmissionDuration:0.00}/{maxTransmissionDuration:0.00}) [ms]");
                 Console.WriteLine($"    avg (min/max) cycle duration:           {avgCycleDuration:0.00} ({minCycleDuration:0.00}/{maxCycleDuration:0.00}) [ms]");
@@ -122,12 +120,12 @@ namespace IotEdgePerf.Analysis
                 Console.WriteLine($"    message count:                          {iotHubMessageCount} [msg]");
                 Console.WriteLine($"    fist msg epoch:                         {firstIotHubMessageEpoch} [epoch ms]");
                 Console.WriteLine($"    last msg epoch:                         {lastIotHubMessageEpoch} [epoch ms]");
-                Console.WriteLine($"    session duration:                       {sessiosIotHubDuration:0.00} [ms]");
+                Console.WriteLine($"    session duration:                       {sessionIotHubDuration:0.00} [ms]");
                 //Console.WriteLine($"    rate (at IoT HUB ingress, count/5s)     {asaEstimatedRate:0.00} [msg/s]");
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"    rate (at IoT HUB ingress, ts):          {asaEstimatedRateIotHub:0.00} [msg/s]");
                 Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine($"    rate (at ASA ingress):                  {asaEstimatedRateAsa:0.00} [msg/s]"); 
+                //Console.WriteLine($"    rate (at ASA ingress):                  {asaEstimatedRateAsa:0.00} [msg/s]"); 
                 
                 Console.WriteLine("");
                 Console.WriteLine($"LATENCY:");

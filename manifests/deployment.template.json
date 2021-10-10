@@ -50,7 +50,9 @@
               "image": "$IMAGE",
               "createOptions": "{}"
             },
-            "env": {}
+            "env": {
+              "LOG_LEVEL": {"value": "info"}
+            }
           }
         }
       }

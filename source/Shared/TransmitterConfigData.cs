@@ -2,7 +2,7 @@ namespace IotEdgePerf.Shared
 {
     public class TransmitterConfigData
     {
-        public bool enable = true;
+        public bool enable;
         public int burstLength;
         public int burstWait;
         public int burstNumber;

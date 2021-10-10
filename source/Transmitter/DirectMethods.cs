@@ -6,6 +6,7 @@ namespace IotEdgePerf.Transmitter
     using Microsoft.Azure.Devices.Client;
     using Newtonsoft.Json;
     using IotEdgePerf.Shared;
+    using Serilog;
     
     public partial class Transmitter : ITransmitter
     {
@@ -20,8 +21,8 @@ namespace IotEdgePerf.Transmitter
         {
             Transmitter senderMachine = (Transmitter)userContext;
             
-            Console.WriteLine($"{methodRequest.Name} was called.");
-            Console.WriteLine($"{methodRequest.DataAsJson}");
+            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
+            Log.Debug($"{methodRequest.DataAsJson}");
 
             var request = JsonConvert.DeserializeObject<TransmitterStartDmPayload>(methodRequest.DataAsJson);
             senderMachine.Start(request.runId, request.config);
@@ -35,8 +36,8 @@ namespace IotEdgePerf.Transmitter
         {
             Transmitter senderMachine = (Transmitter)userContext;
             
-            Console.WriteLine($"{methodRequest.Name} was called.");
-            Console.WriteLine($"{methodRequest.DataAsJson}");
+            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
+            Log.Debug($"{methodRequest.DataAsJson}");
 
             var request = JsonConvert.DeserializeObject<TransmitterRestartDmPayload>(methodRequest.DataAsJson);
             senderMachine.Restart(request.runId);             

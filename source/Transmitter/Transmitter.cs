@@ -10,13 +10,13 @@ namespace IotEdgePerf.Transmitter
     using Newtonsoft.Json;
 
     using Serilog;
-    
+
     using IotEdgePerf.Shared;
     using IotEdgePerf.Profiler;
-         
+
     public partial class Transmitter : ITransmitter
     {
-        ModuleClient _moduleClient; 
+        ModuleClient _moduleClient;
         string _moduleOutput;
 
         TransmitterConfigData _config;
@@ -27,21 +27,21 @@ namespace IotEdgePerf.Transmitter
 
         public Transmitter(ModuleClient moduleClient, string moduleOutput)
         {
-            this._moduleClient=moduleClient;
-            this._moduleOutput=moduleOutput;
+            this._moduleClient = moduleClient;
+            this._moduleOutput = moduleOutput;
             this._resetRequest = false;
         }
 
         public void Restart(Guid runId)
         {
+            this._runId = runId;
             _resetRequest = true;
-            this._runId=runId;
         }
 
         public void Start(Guid runId, TransmitterConfigData config)
         {
             this._config = config;
-            Log.Information("Transmitter started with configuration:\n{0}", JsonConvert.SerializeObject(this._config, Formatting.Indented));
+            Log.Information("New configuration applied:\n{0}", JsonConvert.SerializeObject(this._config, Formatting.Indented));
 
             this.Restart(runId);
         }
@@ -73,11 +73,15 @@ namespace IotEdgePerf.Transmitter
 
             if (!_config.enable) return; // do nothing
 
-            // wait before starting
-            Log.Information($"\nwaiting {_config.waitBeforeStart} ms before starting...");
-            Thread.Sleep(this._config.waitBeforeStart);
+            if (_resetRequest)
+            {
+                Log.Information("reset executed.");
+                _resetRequest = false;
+            }
 
-            Log.Information($"starting...");
+            // wait before starting
+            Log.Information($"waiting {_config.waitBeforeStart} ms before starting...");
+            Thread.Sleep(this._config.waitBeforeStart);
 
             // 
             Log.Information($"Run ID: {_runId}");
@@ -89,24 +93,23 @@ namespace IotEdgePerf.Transmitter
                 cyclePeriodMilliseconds = 0;
             Log.Information($"(calculated) cycle period [ms]: {cyclePeriodMilliseconds}");
 
-            for (int burstIndex=0;  burstIndex<this._config.burstNumber; burstIndex++)
+            for (int burstIndex = 0; burstIndex < this._config.burstNumber; burstIndex++)
             {
                 profiler.SessionStart(_runId);
 
                 Log.Debug("Burst index: {0}", burstIndex);
-                
-                for (int messageIndex=0;  messageIndex<this._config.burstLength; messageIndex++)
+
+                for (int messageIndex = 0; messageIndex < this._config.burstLength; messageIndex++)
                 {
                     profiler.MessageCycleStart();
 
                     Log.Debug("Message index: {0}", messageIndex);
 
                     // checks if a reset has been requested
+
                     if (_resetRequest)
                     {
-                        Log.Information("resetting...\n");
-                        _resetRequest = false;
-                        
+                        Log.Information("reset request received. stops transmission.");
                         return; // not complete
                     }
 

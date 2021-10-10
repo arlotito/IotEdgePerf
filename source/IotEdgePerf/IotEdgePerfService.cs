@@ -13,6 +13,7 @@ namespace IotEdgePerf.Service
         private string deviceId;
 
         private string moduleId="source";
+        public string _runId;
         
         public IotEdgePerfService(string connString, string deviceId)
         {
@@ -28,6 +29,8 @@ namespace IotEdgePerf.Service
         {
             Console.WriteLine($"Invoking 'Start' dm on device '{this.deviceId}'...");
             
+            this._runId = runId.ToString();
+
             var methodInvocation = new CloudToDeviceMethod("Start")
             {
                 ResponseTimeout = TimeSpan.FromSeconds(30),
@@ -52,6 +55,8 @@ namespace IotEdgePerf.Service
         {
             Console.WriteLine($"Invoking 'Restart' dm on device '{this.deviceId}'...");
             
+            this._runId = runId.ToString();
+
             var methodInvocation = new CloudToDeviceMethod("Restart")
             {
                 ResponseTimeout = TimeSpan.FromSeconds(30),

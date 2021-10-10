@@ -34,50 +34,74 @@ stage2 as
         (iothub_epoch - device_epoch) AS deviceToHubLatency,
         (asa_epoch - iothub_epoch) AS hubToAsaLatency
     FROM stage1 
+),
+stage3 as
+(
+    SELECT
+        System.Timestamp() t,
+        sessionId,
+        
+        MAX(sessionTimeElapsedMilliseconds) AS sessionTimeElapsedMilliseconds,
+
+        MIN(device_epoch) AS firstMessageEpoch,
+        MAX(device_epoch) AS lastMessageEpoch,
+
+        MIN(iothub_epoch) AS firstIotHubEpoch,
+        MAX(iothub_epoch) AS lastIotHubEpoch,
+
+        topone() over (order by messageSequenceNumberInSession asc) as firstMessage,
+        topone() over (order by messageSequenceNumberInSession desc) as lastMessage,
+
+        MAX(messageSequenceNumberInSession) AS messageSequenceNumberInSession,
+        MAX(timingViolationsCounter) AS asaTimingViolationsCounter,
+        
+        MIN(previousTransmissionDurationMilliseconds) AS minTransmissionDuration,
+        MAX(previousTransmissionDurationMilliseconds) AS maxTransmissionDuration,
+        AVG(previousTransmissionDurationMilliseconds) AS avgTransmissionDuration,
+
+        MIN(previousMessageCycleDurationMilliseconds) AS minCycleDuration,
+        MAX(previousMessageCycleDurationMilliseconds) AS maxCycleDuration,
+        AVG(previousMessageCycleDurationMilliseconds) AS avgCycleDuration,
+        
+        COUNT(*) AS asaMessageCount,
+        
+        AVG(deviceToHubLatency) AS avgDeviceToHubLatency,
+        MIN(deviceToHubLatency) AS minDeviceToHubLatency,
+        MAX(deviceToHubLatency) AS maxDeviceToHubLatency,
+
+        AVG(hubToAsaLatency) AS avgHubToAsaLatency,
+        MIN(hubToAsaLatency) AS minHubToAsaLatency,
+        MAX(hubToAsaLatency) AS maxHubToAsaLatency 
+    FROM
+        stage2
+    GROUP BY sessionId, TumblingWindow(second, 5)
 )
 
 SELECT
     System.Timestamp() t,
     sessionId,
-    
-    MAX(sessionTimeElapsedMilliseconds) AS sessionTimeElapsedMilliseconds,
-
-    MIN(device_epoch) AS firstMessageEpoch,
-    MAX(device_epoch) AS lastMessageEpoch,
-
-    MIN(iothub_epoch) AS firstIotHubEpoch,
-    MAX(iothub_epoch) AS lastIotHubEpoch,
-
-    MIN(sessionRollingRate) AS minRollingRate,
-    MAX(sessionRollingRate) AS maxRollingRate,
-    AVG(sessionRollingRate) AS avgRollingRate,
-
-    MAX(messageSequenceNumberInSession) AS messageSequenceNumberInSession,
-
-    MAX(timingViolationsCounter) AS asaTimingViolationsCounter,
-    
-    MIN(previousTransmissionDurationMilliseconds) AS minTransmissionDuration,
-    MAX(previousTransmissionDurationMilliseconds) AS maxTransmissionDuration,
-    AVG(previousTransmissionDurationMilliseconds) AS avgTransmissionDuration,
-
-    MIN(previousMessageCycleDurationMilliseconds) AS minCycleDuration,
-    MAX(previousMessageCycleDurationMilliseconds) AS maxCycleDuration,
-    AVG(previousMessageCycleDurationMilliseconds) AS avgCycleDuration,
-    
-    CAST( COUNT(*) AS float) AS asaMessageCount,
-    CAST( COUNT(*) AS float) / 5 AS asaEstimatedRate,
-    CAST( COUNT(*) AS float) / (MAX(iothub_epoch) - MIN(iothub_epoch)) * 1000 AS asaEstimatedRateIotHub,
-    CAST( COUNT(*) AS float) / (MAX(asa_epoch) - MIN(asa_epoch)) * 1000 AS asaEstimatedRateAsa,
-    
-    AVG(deviceToHubLatency) AS avgDeviceToHubLatency,
-    MIN(deviceToHubLatency) AS minDeviceToHubLatency,
-    MAX(deviceToHubLatency) AS maxDeviceToHubLatency,
-
-    AVG(hubToAsaLatency) AS avgHubToAsaLatency,
-    MIN(hubToAsaLatency) AS minHubToAsaLatency,
-    MAX(hubToAsaLatency) AS maxHubToAsaLatency 
+    sessionTimeElapsedMilliseconds,
+    firstMessageEpoch,
+    lastMessageEpoch,
+    firstIotHubEpoch,
+    lastIotHubEpoch,
+    lastMessage.sessionRollingRate AS sessionRollingRate,
+    messageSequenceNumberInSession,
+    asaTimingViolationsCounter,
+    minTransmissionDuration,
+    maxTransmissionDuration,
+    avgTransmissionDuration,
+    minCycleDuration,
+    maxCycleDuration,
+    avgCycleDuration,
+    asaMessageCount,
+    avgDeviceToHubLatency,
+    minDeviceToHubLatency,
+    maxDeviceToHubLatency,
+    avgHubToAsaLatency,
+    minHubToAsaLatency,
+    maxHubToAsaLatency 
 INTO
     eventhub
 FROM
-    stage2
-GROUP BY sessionId, TumblingWindow(second, 5)
+    stage3

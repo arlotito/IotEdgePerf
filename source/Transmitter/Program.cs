@@ -8,9 +8,11 @@ namespace transmitter
     using Newtonsoft.Json;
 
     using Serilog;
+    using Serilog.Core;
 
     using IotEdgePerf.Transmitter;
-            
+    using Serilog.Events;
+
     class Program
     {
         static ModuleClient _ioTHubModuleClient;
@@ -18,21 +20,49 @@ namespace transmitter
 
         static string _deviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
         static string _iotHubHostname = Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME");
-
-        
+        static LoggingLevelSwitch _logLevelSwitch = new LoggingLevelSwitch();
 
         static Transmitter _transmitter;
         
         static TwinCollection _twin;
 
+        static void GetLogLevelFromEnv()
+        {
+            var level = Environment.GetEnvironmentVariable("LOG_LEVEL");
+
+            if (!String.IsNullOrEmpty(level))
+            {
+                switch (level)
+                {
+                    default:
+                        _logLevelSwitch.MinimumLevel = LogEventLevel.Information;
+                        break;
+
+                    case "info":
+                        _logLevelSwitch.MinimumLevel = LogEventLevel.Information;
+                        break;
+
+                    case "debug":
+                        _logLevelSwitch.MinimumLevel = LogEventLevel.Debug;
+                        break;
+
+                    case "error":
+                        _logLevelSwitch.MinimumLevel = LogEventLevel.Debug;
+                        break;
+                }
+            }
+        }
+        
         async static Task Main(string[] args)
         {
+            GetLogLevelFromEnv();
+
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
+                .MinimumLevel.ControlledBy(_logLevelSwitch)
                 .WriteTo.Console()
                 //.WriteTo.File("logs/myapp.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
-
+            
             Init().Wait();
 
             await _transmitter.RegisterDM();
