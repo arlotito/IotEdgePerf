@@ -1,20 +1,20 @@
-namespace IoTEdgePerf.Service
+namespace IotEdgePerf.Service
 {
     using System;
     using Microsoft.Azure.Devices.Shared; // For TwinCollection
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices;
     using System.Threading.Tasks;
-    using IoTEdgePerf.Shared;
+    using IotEdgePerf.Shared;
     
-    public class MonitorService
+    public class IotEdgePerfService
     {
         private ServiceClient serviceClient;
         private string deviceId;
 
         private string moduleId="source";
         
-        public MonitorService(string connString, string deviceId)
+        public IotEdgePerfService(string connString, string deviceId)
         {
             this.deviceId = deviceId;
             

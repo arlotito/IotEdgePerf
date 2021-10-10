@@ -34,12 +34,6 @@ At any time you can check the size consumed by the edgeHub queue with:
 du -hd1 /iotedge
 ```
 
-## Build the iotEdgePerf tool
-On the DEV machine, build the iotEdgePerfTool (as a self-contained binary):
-```bash
-dotnet publish ./source/iotEdgePerf/iotEdgePerf.csproj -r linux-x64 -p:PublishSingleFile=true --configuration Release -o .
-```
-
 ## Execute the tests
 On the DEV machine (change to match yours):
 ```bash
@@ -58,8 +52,10 @@ That sets "MaxUpstreamBatchSize" to 200. Change it to your needs.
 
 Run the test:
 ```bash
+cd ./source/iot/iotEdgePerf
+
 # test 1: 1000 msg at 100 msg/s, 1KB each 
-./iotEdgePerf \
+dotnet run -- \
   --payload-length=1024 
   --burst-length=1000
   --burst-number=1 
@@ -67,7 +63,8 @@ Run the test:
   -o test.csv
 
 # test 2: 1000 msg at 500 msg/s, 1KB each
-./iotEdgePerf --payload-length=1024 
+dotnet run -- \
+  --payload-length=1024 
   --burst-length=1000
   --burst-number=1 
   --target-rate=500
@@ -77,6 +74,10 @@ Run the test:
 And here's the result:
 ![](./images/cli.png)
 
- 
+## Optionally build the iotEdgePerf tool
+On the DEV machine, build the iotEdgePerfTool as a self-contained binary:
+```bash
+dotnet publish ./source/iotEdgePerf/iotEdgePerf.csproj -r linux-x64 -p:PublishSingleFile=true --configuration Release -o .
+```
 
 

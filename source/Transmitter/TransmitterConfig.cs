@@ -1,9 +1,9 @@
-namespace IoTEdgePerf.Transmitter
+namespace IotEdgePerf.Transmitter
 {
     using System;
     using Microsoft.Azure.Devices.Shared; // For TwinCollection
     using Newtonsoft.Json;
-    using IoTEdgePerf.Shared;
+    using IotEdgePerf.Shared;
     
     public static class TransmitterConfig
     {

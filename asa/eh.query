@@ -5,10 +5,14 @@ stage1 as
         IoTHub.EnqueuedTime AS IoTHubEnqueuedTime,
         EventEnqueuedUtcTime AS ASAEnqueuedTime,
         IoTHub.ConnectionDeviceId as device_id,
-        runId,runMsgTotal,runMsgCounter,runElapsed,
-        burstCounter,burstLength,burstMsgCounter,burstElapsed,
-        ts AS device_epoch,
-        DATEADD(millisecond, ts, '1970-01-01T00:00:00Z') AS device_ts,
+        iotEdgePerf.sessionId as sessionId,
+        iotEdgePerf.sessionTimeElapsedMilliseconds as sessionTimeElapsedMilliseconds,
+        iotEdgePerf.sessionRollingRate as sessionRollingRate,
+        iotEdgePerf.messageSequenceNumberInSession as messageSequenceNumberInSession,
+        iotEdgePerf.previousTransmissionDurationMilliseconds as previousTransmissionDurationMilliseconds,
+        iotEdgePerf.previousMessageCycleDurationMilliseconds as previousMessageCycleDurationMilliseconds,
+        iotEdgePerf.timingViolationsCounter AS timingViolationsCounter,
+        iotEdgePerf.messageTimestampMilliseconds AS device_epoch,
         DATEDIFF(millisecond, '1970-01-01T00:00:00Z', CAST(IoTHub.EnqueuedTime AS DATETIME)) AS iothub_epoch,
         DATEDIFF(millisecond, '1970-01-01T00:00:00Z', CAST(EventEnqueuedUtcTime AS DATETIME)) AS asa_epoch
     FROM hub 
@@ -17,37 +21,63 @@ stage2 as
 (
     SELECT
         device_id,
-        runId,runMsgTotal,runMsgCounter,runElapsed,
-        burstCounter,burstLength,burstMsgCounter,burstElapsed,
-        iothub_epoch,asa_epoch,
-        device_ts,
-        DATEDIFF (millisecond, device_ts, IoTHubEnqueuedTime) AS Latency
+        sessionId,
+        sessionTimeElapsedMilliseconds,
+        sessionRollingRate,
+        messageSequenceNumberInSession,
+        previousTransmissionDurationMilliseconds,
+        previousMessageCycleDurationMilliseconds,
+        timingViolationsCounter,
+        device_epoch,
+        iothub_epoch,
+        asa_epoch,
+        (iothub_epoch - device_epoch) AS deviceToHubLatency,
+        (asa_epoch - iothub_epoch) AS hubToAsaLatency
     FROM stage1 
 )
 
 SELECT
     System.Timestamp() t,
-    runId,
-    burstCounter,
-    MIN(device_ts) AS firstMsgTs,
-    MAX(device_ts) AS lastMsgTs,
+    sessionId,
+    
+    MAX(sessionTimeElapsedMilliseconds) AS sessionTimeElapsedMilliseconds,
+
+    MIN(device_epoch) AS firstMessageEpoch,
+    MAX(device_epoch) AS lastMessageEpoch,
+
     MIN(iothub_epoch) AS firstIotHubEpoch,
     MAX(iothub_epoch) AS lastIotHubEpoch,
-    MAX(runMsgTotal) AS asaRunMsgTotal,
-    MAX(runMsgCounter) AS asaRunMsgCounter,
-    MAX(runElapsed) AS asaRunElapsed,
-    MAX(burstLength) AS asaBurstLength,
-    MAX(burstMsgCounter) AS asaBurstMsgCounter,
-    MAX(burstElapsed) AS asaBurstElapsed,
-    COUNT(*) AS asaMsgCount,
-    COUNT(*) / 5 AS asaEstimatedRate,
+
+    MIN(sessionRollingRate) AS minRollingRate,
+    MAX(sessionRollingRate) AS maxRollingRate,
+    AVG(sessionRollingRate) AS avgRollingRate,
+
+    MAX(messageSequenceNumberInSession) AS messageSequenceNumberInSession,
+
+    MAX(timingViolationsCounter) AS asaTimingViolationsCounter,
+    
+    MIN(previousTransmissionDurationMilliseconds) AS minTransmissionDuration,
+    MAX(previousTransmissionDurationMilliseconds) AS maxTransmissionDuration,
+    AVG(previousTransmissionDurationMilliseconds) AS avgTransmissionDuration,
+
+    MIN(previousMessageCycleDurationMilliseconds) AS minCycleDuration,
+    MAX(previousMessageCycleDurationMilliseconds) AS maxCycleDuration,
+    AVG(previousMessageCycleDurationMilliseconds) AS avgCycleDuration,
+    
+    CAST( COUNT(*) AS float) AS asaMessageCount,
+    CAST( COUNT(*) AS float) / 5 AS asaEstimatedRate,
     CAST( COUNT(*) AS float) / (MAX(iothub_epoch) - MIN(iothub_epoch)) * 1000 AS asaEstimatedRateIotHub,
     CAST( COUNT(*) AS float) / (MAX(asa_epoch) - MIN(asa_epoch)) * 1000 AS asaEstimatedRateAsa,
-    AVG(Latency) AS asaAvgLatency,
-    MIN(Latency) AS asaMinLatency,
-    MAX(Latency) AS asaMaxLatency 
+    
+    AVG(deviceToHubLatency) AS avgDeviceToHubLatency,
+    MIN(deviceToHubLatency) AS minDeviceToHubLatency,
+    MAX(deviceToHubLatency) AS maxDeviceToHubLatency,
+
+    AVG(hubToAsaLatency) AS avgHubToAsaLatency,
+    MIN(hubToAsaLatency) AS minHubToAsaLatency,
+    MAX(hubToAsaLatency) AS maxHubToAsaLatency 
 INTO
     eventhub
 FROM
     stage2
-GROUP BY runId, burstCounter, TumblingWindow(second, 5)
+GROUP BY sessionId, TumblingWindow(second, 5)

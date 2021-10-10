@@ -9,34 +9,34 @@ using Newtonsoft.Json;
 
 using Azure.Messaging.EventHubs.Consumer;
 
-using IoTEdgePerf.Service;
-using IoTEdgePerf.Shared;
-using IoTEdgePerf.Analysis;
+using IotEdgePerf.Service;
+using IotEdgePerf.Shared;
+using IotEdgePerf.Analysis;
 
 namespace IotEdgePerf.ConsoleApp
 {
     partial class Program
     {
 
-        private static string EventHubConnectionString = "";
-        private static string EventHubName = "";
-        private static double TimeoutInterval;
+        private static string _eventHubConnectionString = "";
+        private static string _eventHubName = "";
+        private static double _timeoutInterval;
 
-        private static System.Timers.Timer timeout;
+        private static System.Timers.Timer _timeout;
 
-        private static bool ShowMsg;
+        private static bool _showMsg;
 
         
 
-        private static string IotHubConnectionString = "";
-        private static string DeviceId = "";
+        private static string _iotHubConnectionString = "";
+        private static string _deviceId = "";
 
-        private static MonitorService monitorService;
-        private static TransmitterConfigData transmitterConfig;
-        private static Analyzer analyzer;
+        private static IotEdgePerfService _iotEdgePerfService;
+        private static TransmitterConfigData _transmitterConfigData;
+        private static Analyzer _analyzer;
 
-        private static string CsvFile;
-        private static string TestLabel;
+        private static string _csvFile;
+        private static string _customLabel;
 
         public static async Task Main(string[] args)
         {
@@ -52,18 +52,18 @@ namespace IotEdgePerf.ConsoleApp
             };
 
             // start timeout
-            SetTimeout(TimeoutInterval, cts);
+            SetTimeout(_timeoutInterval, cts);
 
             if (
-                !String.IsNullOrEmpty(IotHubConnectionString)
-                && !String.IsNullOrEmpty(DeviceId)
+                !String.IsNullOrEmpty(_iotHubConnectionString)
+                && !String.IsNullOrEmpty(_deviceId)
             )
             {
                 // Create a ServiceClient to communicate with service-facing endpoint on your hub.
-                monitorService = new MonitorService(IotHubConnectionString, DeviceId);
+                _iotEdgePerfService = new IotEdgePerfService(_iotHubConnectionString, _deviceId);
 
                 // Apply config
-                await monitorService.Start(Guid.NewGuid(), transmitterConfig);
+                await _iotEdgePerfService.Start(Guid.NewGuid(), _transmitterConfigData);
             }
             else
             {
@@ -72,7 +72,7 @@ namespace IotEdgePerf.ConsoleApp
             }
 
             // 
-            analyzer = new Analyzer(transmitterConfig, CsvFile, TestLabel);
+            _analyzer = new Analyzer(_transmitterConfigData, _csvFile, _customLabel);
           
             // listens to EH messages
             await ReceiveMessagesFromDeviceAsync(cts.Token);
@@ -83,11 +83,11 @@ namespace IotEdgePerf.ConsoleApp
         private static void SetTimeout(double interval, CancellationTokenSource cts)
         {
             // Create a timer with a two second interval.
-            timeout = new System.Timers.Timer(interval);
+            _timeout = new System.Timers.Timer(interval);
             // Hook up the Elapsed event for the timer. 
-            timeout.Elapsed += (sender, args) => OnTimeout(cts);
-            timeout.AutoReset = false;
-            timeout.Enabled = true;
+            _timeout.Elapsed += (sender, args) => OnTimeout(cts);
+            _timeout.AutoReset = false;
+            _timeout.Enabled = true;
         }
 
         private static void OnTimeout(CancellationTokenSource cts)
@@ -96,7 +96,7 @@ namespace IotEdgePerf.ConsoleApp
             cts.Cancel();
 
             Console.WriteLine("\nThis analysis may be partial.");
-            analyzer.Do();
+            _analyzer.AnalyzeData();
         }
 
         // Asynchronously create a PartitionReceiver for a partition and then start
@@ -107,15 +107,17 @@ namespace IotEdgePerf.ConsoleApp
             
             await using var consumer = new EventHubConsumerClient(
                     EventHubConsumerClient.DefaultConsumerGroupName,
-                    EventHubConnectionString,
-                    EventHubName);
+                    _eventHubConnectionString,
+                    _eventHubName);
 
             //Console.WriteLine($"Discarding messages before {discardBefore.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}\n");
 
             Console.WriteLine("Listening for messages on all partitions.");
-            Console.WriteLine($"Reading events (timeout={TimeoutInterval}ms)... ctrl-C to exit.\n");
+            Console.WriteLine($"Reading events (timeout={_timeoutInterval}ms)... ctrl-C to exit.\n");
 
             Console.WriteLine("");
+
+            int expectedMessageCount = _transmitterConfigData.burstLength * _transmitterConfigData.burstNumber;
 
             try
             {
@@ -126,6 +128,7 @@ namespace IotEdgePerf.ConsoleApp
                     //Console.WriteLine($"\nMessage received on partition {partitionEvent.Partition.PartitionId}:");
 
                     string data = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
+                    
 
                     try
                     {
@@ -136,25 +139,25 @@ namespace IotEdgePerf.ConsoleApp
 
                         if (DateTime.Compare(t, discardBefore) > 0)
                         {
-                            timeout.Stop();
-                            timeout.Start();
+                            _timeout.Stop();
+                            _timeout.Start();
 
-                            if (ShowMsg)
+                            if (_showMsg)
                                 Console.WriteLine(data);
                             else
                             {
-                                double percentage = (msg.asaRunMsgCounter / msg.asaRunMsgTotal) * 100;
+                                double percentage = (msg.messageSequenceNumberInSession / expectedMessageCount) * 100;
                                 Console.SetCursorPosition(0, Console.CursorTop - 1);
-                                Console.WriteLine($"{percentage:000.0}% - {msg.asaRunMsgTotal}/{msg.asaRunMsgCounter}");
+                                Console.WriteLine($"{percentage:000.0}% - {msg.messageSequenceNumberInSession}/{expectedMessageCount}");
                             }
 
                             // add for analysis
-                            analyzer.Add(msg);
+                            _analyzer.Add(msg);
 
-                            if (msg.asaRunMsgCounter == msg.asaRunMsgTotal)
+                            if (msg.messageSequenceNumberInSession == expectedMessageCount)
                             {
                                 Console.WriteLine("Completed.");
-                                analyzer.Do();
+                                _analyzer.AnalyzeData();
                                 return;
                             }
                         }
@@ -164,18 +167,19 @@ namespace IotEdgePerf.ConsoleApp
                         }
                     }
 
-                    catch (Newtonsoft.Json.JsonReaderException)
+                    catch (Newtonsoft.Json.JsonReaderException e)
                     {
-                        //Console.WriteLine($"{e}");
-                        //Console.WriteLine(data);
-                        //Console.WriteLine($"{e.Message}");
+
+                        Console.WriteLine($"Serialization error on: {data}");
+                        Console.WriteLine($"{e}");
+                        Console.WriteLine($"{e.Message}");
                     }
 
-                    catch (Newtonsoft.Json.JsonSerializationException)
+                    catch (Newtonsoft.Json.JsonSerializationException e)
                     {
-                        //Console.WriteLine($"{e}");
-                        //Console.WriteLine(data);
-                        //Console.WriteLine($"{e.Message}");
+                        Console.WriteLine($"Serialization error on: {data}");
+                        Console.WriteLine($"{e}");
+                        Console.WriteLine($"{e.Message}");
                     }
 
 

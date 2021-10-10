@@ -12,7 +12,7 @@ echo BUILD=$new_build
 echo $new_build > BUILD
 
 export DOCKERFILE_PATH="."
-export IMAGE_NAME="arlotito/iotedgeperf-transmitter"
+export IMAGE_NAME="arlotito/profiler"
 export IMAGE_TAG="0.3.$new_build"
 
 echo Building and pushing to "$IMAGE_NAME:$IMAGE_TAG"
