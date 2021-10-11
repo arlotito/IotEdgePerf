@@ -118,19 +118,30 @@ namespace IotEdgePerf.Transmitter
                     // create single message or batch of messages
                     for (int k = 0; k < this._config.batchSize; k++)
                     {
+                        // gets profiling data
+                        var perfMessage = profiler.DoProfiling();
+                        string perfMessageJson = JsonConvert.SerializeObject(perfMessage);
+                        //Log.Debug("perfMessage: \n{0} \nlength: {1}", perfMessageJson, perfMessageJson.Length);
+
                         // create a sample payload
+                        int bytesToBeAdded = this._config.payloadLength;
+                        bytesToBeAdded -= (perfMessageJson.Length + 14); //"iotEdgePerf":
+                        bytesToBeAdded -= 15; //{"payload":"",}
+                        if (bytesToBeAdded < 0) bytesToBeAdded=0;
                         var applicationPayload = new
                         {
-                            payload = RandomString(this._config.payloadLength)
+                            //"payload":
+                            payload = RandomString(bytesToBeAdded)
                         };
+                        string applicationPayloadJson = JsonConvert.SerializeObject(applicationPayload);
+                        //Log.Debug("applicationPayload: \n{0} \nlength: {1}", applicationPayloadJson, applicationPayloadJson.Length);
 
-                        // adds the profiling data
-                        var perfMessage = profiler.DoProfiling();
-                        var mergedMessageString = Profiler.AddProfilingDataAndSerialize(applicationPayload, perfMessage);
+                        //
+                        var mergedMessageString = Profiler.AddProfilingDataAndSerialize(applicationPayloadJson, perfMessageJson);
+                        //Log.Debug("mergedMessage: \n{0} \nlength: {1}", mergedMessageString, mergedMessageString.Length);
 
                         // creates the message for the SendEventAsync / SendEventBatchAsync
                         var message = new Message(Encoding.ASCII.GetBytes(mergedMessageString));
-
                         messageBatch.Add(message);
                     }
 

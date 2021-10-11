@@ -4,6 +4,7 @@ namespace IotEdgePerf.Profiler
     using System;
     using System.Threading;
     using System.Diagnostics;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using IotEdgePerf.Shared;
     using Serilog;
@@ -146,12 +147,20 @@ namespace IotEdgePerf.Profiler
             return perfMessage;
         }
 
-        static public string AddProfilingDataAndSerialize(object message, PerfTelemetryMessage perfMessage)
+        static public string AddProfilingDataAndSerialize(object baseObject, PerfTelemetryMessage perfMessage)
         {
-            var jObject = JObject.FromObject(message);
+            var jObject = JObject.FromObject(baseObject);
             jObject.Add(new JProperty("iotEdgePerf", JToken.FromObject(perfMessage)));
                         
-            return jObject.ToString();
+            return jObject.ToString(Formatting.None);
+        }
+
+        static public string AddProfilingDataAndSerialize(string baseMessage, string addOnMessage)
+        {
+            var jObject = JObject.Parse(baseMessage);
+            jObject.Add(new JProperty("iotEdgePerf", JToken.Parse(addOnMessage)));
+                        
+            return jObject.ToString(Formatting.None);
         }
     }
 }
