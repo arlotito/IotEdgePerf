@@ -58,7 +58,7 @@ public class AnalysisData
         Console.WriteLine($"                                SOURCE (out)  =>    (in) IoT HUB");
         Console.WriteLine($"                                --------------------------------");
         Console.WriteLine($"single msg tx duration [ms]:    {DeviceAvgTransmissionDuration:0.00} ({DeviceMinTransmissionDuration:0.00}/{DeviceMaxTransmissionDuration:0.00})");
-        Console.WriteLine($"single msg cycle duration [ms]: {DeviceAvgCycleDuration:0.00} ({DeviceMinCycleDuration:0.00}/{DeviceMaxCycleDuration:0.00}");
+        Console.WriteLine($"single msg cycle duration [ms]: {DeviceAvgCycleDuration:0.00} ({DeviceMinCycleDuration:0.00}/{DeviceMaxCycleDuration:0.00})");
         Console.WriteLine($"timing violations count [msg]:  {DeviceTimingsViolationsCount:0.00}"); 
         Console.WriteLine($"message count [msg]:            {DeviceMessageCount,-20}{IotHubMessageCount,-20}");
         Console.WriteLine($"fist msg epoch [ms]:            {DeviceFirstMessageEpoch,-20}{IotHubFirstMessageEpoch,-20}");
@@ -140,6 +140,7 @@ namespace IotEdgePerf.Analysis
         string _deviceId;
         string _csvFilename;
         string _customLabel;
+        double _receivedMessageCount;
 
         public Analyzer(
             string iotHubHostname,
@@ -152,11 +153,15 @@ namespace IotEdgePerf.Analysis
             this._customLabel = customLabel;
             this._deviceId= deviceId;
             this._iotHubHostname = iotHubHostname;
+            this._receivedMessageCount = 0;
         }
 
-        public void Add(AsaMessage msg)
+        public double Add(AsaMessage msg)
         {
             this._messagesList.Add(msg);
+            this._receivedMessageCount += msg.asaMessageCount;
+
+            return this._receivedMessageCount;
         }
 
         public void DoAnalysis()
@@ -177,8 +182,10 @@ namespace IotEdgePerf.Analysis
             // perform analysis
             foreach (var sessionGroup in query)
             {
-                AsaMessage firstAsaMessage = sessionGroup.First();
-                AsaMessage lastAsaMessage = sessionGroup.Last();
+                AsaMessage firstDeviceMessage = sessionGroup.OrderBy(item => item.firstMessageEpoch).First();
+                AsaMessage lastDeviceMessage = sessionGroup.OrderBy(item => item.lastMessageEpoch).Last();
+                AsaMessage firstIotHubMessage = sessionGroup.OrderBy(item => item.firstIotHubEpoch).First();
+                AsaMessage lastIotHubMessage = sessionGroup.OrderBy(item => item.lastIotHubEpoch).Last();
 
                 var analysisData = new AnalysisData
                 {
@@ -188,17 +195,17 @@ namespace IotEdgePerf.Analysis
                     iotHubHostname= this._iotHubHostname,
                     deviceId=this._deviceId,
 
-                    SessionId = lastAsaMessage.sessionId,
+                    SessionId = lastDeviceMessage.sessionId,
 
                     // device
-                    DeviceFirstMessageEpoch = firstAsaMessage.firstMessageEpoch,
-                    DeviceLastMessageEpoch = lastAsaMessage.lastMessageEpoch,
-                    DeviceSessionDuration = lastAsaMessage.lastMessageEpoch - firstAsaMessage.firstMessageEpoch,
+                    DeviceFirstMessageEpoch = firstDeviceMessage.firstMessageEpoch,
+                    DeviceLastMessageEpoch = lastDeviceMessage.lastMessageEpoch,
+                    DeviceSessionDuration = lastDeviceMessage.lastMessageEpoch - firstDeviceMessage.firstMessageEpoch,
 
-                    DeviceMessageCount = lastAsaMessage.messageSequenceNumberInSession,
+                    DeviceMessageCount = lastDeviceMessage.messageSequenceNumberInSession,
 
-                    DeviceEgressRate = lastAsaMessage.sessionRollingRate,
-                    DeviceTimingsViolationsCount = sessionGroup.Max(item => item.asaTimingViolationsCounter),
+                    DeviceEgressRate = lastDeviceMessage.sessionRollingRate,
+                    DeviceTimingsViolationsCount = lastDeviceMessage.asaTimingViolationsCounter,
 
                     DeviceAvgTransmissionDuration = sessionGroup.Average(item => item.avgTransmissionDuration),
                     DeviceMinTransmissionDuration = sessionGroup.Min(item => item.minTransmissionDuration),
@@ -211,11 +218,11 @@ namespace IotEdgePerf.Analysis
                     // iot hub
                     IotHubMessageCount = sessionGroup.Sum(item => item.asaMessageCount),
 
-                    IotHubFirstMessageEpoch = firstAsaMessage.firstIotHubEpoch,
-                    IotHubLastMessageEpoch = lastAsaMessage.lastIotHubEpoch,
-                    IotHubSessionDuration = lastAsaMessage.lastIotHubEpoch - firstAsaMessage.firstIotHubEpoch,
+                    IotHubFirstMessageEpoch = firstIotHubMessage.firstIotHubEpoch,
+                    IotHubLastMessageEpoch = lastIotHubMessage.lastIotHubEpoch,
+                    IotHubSessionDuration = lastIotHubMessage.lastIotHubEpoch - firstIotHubMessage.firstIotHubEpoch,
 
-                    IotHubIngressRate = lastAsaMessage.messageSequenceNumberInSession / (lastAsaMessage.lastIotHubEpoch - firstAsaMessage.firstIotHubEpoch) * 1000,
+                    IotHubIngressRate = sessionGroup.Sum(item => item.asaMessageCount) / (lastIotHubMessage.lastIotHubEpoch - firstIotHubMessage.firstIotHubEpoch) * 1000,
 
                     DeviceToIotHubAvgLatency = sessionGroup.Average(item => item.avgDeviceToHubLatency),
                     DeviceToIotHubMinLatency = sessionGroup.Min(item => item.minDeviceToHubLatency),

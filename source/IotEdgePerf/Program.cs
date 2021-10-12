@@ -99,10 +99,12 @@ namespace IotEdgePerf.ConsoleApp
         private static void OnTimeout(CancellationTokenSource cts)
         {
             Console.WriteLine("\nTimeout elapsed.");
+            Console.WriteLine("Analysis may be incomplete.");
             cts.Cancel();
 
-            Console.WriteLine("\nThis analysis may be partial.");
             _analyzer.DoAnalysis();
+            return;
+
         }
 
         // Asynchronously create a PartitionReceiver for a partition and then start
@@ -150,21 +152,21 @@ namespace IotEdgePerf.ConsoleApp
                                 _timeout.Stop();
                                 _timeout.Start();
 
+                                // add for analysis
+                                double count = _analyzer.Add(msg);
+
                                 if (_showMsg)
                                     Console.WriteLine($"Received: {line}");
                                 else
                                 {
-                                    double percentage = (msg.messageSequenceNumberInSession / expectedMessageCount) * 100;
+                                    double percentage = (count / expectedMessageCount) * 100;
                                     Console.SetCursorPosition(0, Console.CursorTop - 1);
-                                    Console.WriteLine($"{percentage:000.0}% - {msg.messageSequenceNumberInSession}/{expectedMessageCount}");
+                                    Console.WriteLine($"{percentage:000.0}% - {count}/{expectedMessageCount}");
                                 }
 
-                                // add for analysis
-                                _analyzer.Add(msg);
-
-                                if (msg.messageSequenceNumberInSession == expectedMessageCount)
+                                if (count == expectedMessageCount)
                                 {
-                                    Console.WriteLine("Completed.");
+                                    Console.WriteLine("\nAll expected messages has been received. Completed.\n \n");
                                     _analyzer.DoAnalysis();
                                     return;
                                 }
