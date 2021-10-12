@@ -1,5 +1,6 @@
 .vs/
 local/
+local-test/
 *secrets.*
 iotEdgePerf
 iotEdgePerf.*
