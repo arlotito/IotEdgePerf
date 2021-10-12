@@ -14,7 +14,8 @@ export upstream='$upstream'
 export edgeAgent='$edgeAgent'
 export edgeHub='$edgeHub'
 export MaxUpstreamBatchSize="${3}"
-export IMAGE="arlotito/profiler:0.3.$build"
+#export IMAGE="arlotito/profiler:0.3.$build"
+export IMAGE="arlotito/iotedgeperf-transmitter:0.4.0"
 cat $deploymentManifestTemplate | envsubst > $deploymentManifest
 
 echo "deploying manifest '$deploymentManifest'..."
