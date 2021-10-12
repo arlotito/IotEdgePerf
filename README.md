@@ -23,7 +23,7 @@ Pre-requisites:
 * optional: log analytics workspace
 
 ## Prep the IoT Edge
-Create the '/iotedge' folder (will be used to bind the edgeHub's folder): 
+Log-in into the iot edge device and create the '/iotedge' folder (will be used to bind the edgeHub's folder): 
 ```bash
 sudo mkdir /iotedge
 sudo chown 1000 /iotedge
@@ -52,22 +52,11 @@ That sets "MaxUpstreamBatchSize" to 200. Change it to your needs.
 
 Run the test:
 ```bash
-cd ./source/iot/iotEdgePerf
-
-# test 1: 1000 msg at 100 msg/s, 1KB each 
-dotnet run -- \
-  --payload-length=1024 
-  --burst-length=1000
-  --burst-number=1 
-  --target-rate=100
-  -o test.csv
-
-# test 2: 1000 msg at 500 msg/s, 1KB each
-dotnet run -- \
-  --payload-length=1024 
-  --burst-length=1000
-  --burst-number=1 
-  --target-rate=500
+dotnet run -p ./source/IotEdgePerf -- \
+  --payload-length=1024 \
+  --burst-length=1000 \
+  --burst-number=1 \
+  --target-rate=100 \
   -o test.csv
 ```
 

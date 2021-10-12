@@ -65,10 +65,19 @@ public class AnalysisData
         Console.WriteLine($"last msg epoch [ms]:            {DeviceLastMessageEpoch,-20}{IotHubLastMessageEpoch,-20}");
         Console.WriteLine($"session duration [ms]:          {DeviceSessionDuration,-20}{IotHubSessionDuration,-20}");
         Console.WriteLine($"                                --------------------------------");
-        Console.WriteLine($"rate [msg/s]:                   {DeviceEgressRate,-20:0.00}{IotHubIngressRate,-20:0.00}");
-        Console.WriteLine($"throughput [KB/s]:              {DeviceEgressThroughputKBs,-20:0.00}{IotHubIngressThroughputKBs,-20:0.00}");
+        Console.Write($"rate [msg/s]:                   ");
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"{DeviceEgressRate,-20:0.00}{IotHubIngressRate,-20:0.00}");
+        Console.ForegroundColor = ConsoleColor.Gray;
+        Console.Write($"throughput [KB/s]:              ");
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"{DeviceEgressThroughputKBs,-20:0.00}{IotHubIngressThroughputKBs,-20:0.00}");
+        Console.ForegroundColor = ConsoleColor.Gray;
         Console.WriteLine("------------------------------------------------------------------");
-        Console.WriteLine($"Device to HUB latency:          {DeviceToIotHubAvgLatency:0.00} ({DeviceToIotHubMinLatency:0.00}/{DeviceToIotHubMaxLatency:0.00})");
+        Console.Write($"Device to HUB latency:          ");
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"{DeviceToIotHubAvgLatency:0.00} ({DeviceToIotHubMinLatency:0.00}/{DeviceToIotHubMaxLatency:0.00})");
+        Console.ForegroundColor = ConsoleColor.Gray;
         Console.WriteLine($"HUB to ASA latency:             {IotHubToAsaAvgLatency:0.00} ({IotHubToAsaMinLatency:0.00}/{IotHubToAsaMaxLatency:0.00})");
         Console.WriteLine("");
     }
