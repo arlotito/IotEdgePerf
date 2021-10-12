@@ -48,69 +48,29 @@ public class AnalysisData
 
     public void Show()
     {
-        Console.WriteLine("");
-        Console.Write($"SOURCE (out)    -->     edgeHub     -->     (in) IoT HUB    /   latency (device to hub)");
-
-        Console.WriteLine("");
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.SetCursorPosition(0, Console.CursorTop);
-        Console.Write($"{DeviceEgressRate:0.00} [msg/s]");
-        Console.SetCursorPosition(44, Console.CursorTop);
-        Console.Write($"{IotHubIngressRate:0.00} [msg/s]");
-        Console.SetCursorPosition(64, Console.CursorTop);
-        Console.Write($"avg:{DeviceToIotHubAvgLatency:0.00}, min:{DeviceToIotHubMinLatency:0.00}, max:{DeviceToIotHubMaxLatency:0.00} [ms]");
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine("");
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.SetCursorPosition(0, Console.CursorTop);
-        Console.Write($"{DeviceEgressThroughputKBs:0.00} [KB/s]");
-        Console.SetCursorPosition(44, Console.CursorTop);
-        Console.Write($"{IotHubIngressThroughputKBs:0.00} [KB/s]");
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine("");
-
-        Console.WriteLine("");
         Console.WriteLine($"session ID:     {SessionId}");
         Console.WriteLine($"IoT HUB:        {iotHubHostname}");
         Console.WriteLine($"device ID:      {deviceId}");
         Console.WriteLine($"message count:  {DeviceMessageCount} [msg]");
         Console.WriteLine($"message size:   {Config.payloadLength} [bytes]");
         Console.WriteLine($"raget rate:     {Config.targetRate} [msg/s]");
+        Console.WriteLine(""); 
+        Console.WriteLine($"                                SOURCE (out)  =>    (in) IoT HUB");
+        Console.WriteLine($"                                --------------------------------");
+        Console.WriteLine($"single msg tx duration [ms]:    {DeviceAvgTransmissionDuration:0.00} ({DeviceMinTransmissionDuration:0.00}/{DeviceMaxTransmissionDuration:0.00})");
+        Console.WriteLine($"single msg cycle duration [ms]: {DeviceAvgCycleDuration:0.00} ({DeviceMinCycleDuration:0.00}/{DeviceMaxCycleDuration:0.00}");
+        Console.WriteLine($"timing violations count [msg]:  {DeviceTimingsViolationsCount:0.00}"); 
+        Console.WriteLine($"message count [msg]:            {DeviceMessageCount,-20}{IotHubMessageCount,-20}");
+        Console.WriteLine($"fist msg epoch [ms]:            {DeviceFirstMessageEpoch,-20}{IotHubFirstMessageEpoch,-20}");
+        Console.WriteLine($"last msg epoch [ms]:            {DeviceLastMessageEpoch,-20}{IotHubLastMessageEpoch,-20}");
+        Console.WriteLine($"session duration [ms]:          {DeviceSessionDuration,-20}{IotHubSessionDuration,-20}");
+        Console.WriteLine($"                                --------------------------------");
+        Console.WriteLine($"rate [msg/s]:                   {DeviceEgressRate,-20:0.00}{IotHubIngressRate,-20:0.00}");
+        Console.WriteLine($"throughput [KB/s]:              {DeviceEgressThroughputKBs,-20:0.00}{IotHubIngressThroughputKBs,-20:0.00}");
+        Console.WriteLine("------------------------------------------------------------------");
+        Console.WriteLine($"Device to HUB latency:          {DeviceToIotHubAvgLatency:0.00} ({DeviceToIotHubMinLatency:0.00}/{DeviceToIotHubMaxLatency:0.00})");
+        Console.WriteLine($"HUB to ASA latency:             {IotHubToAsaAvgLatency:0.00} ({IotHubToAsaMinLatency:0.00}/{IotHubToAsaMaxLatency:0.00})");
         Console.WriteLine("");
-        Console.WriteLine($"SOURCE:");
-        Console.WriteLine($"    fist msg epoch:                         {DeviceFirstMessageEpoch} [epoch ms]");
-        Console.WriteLine($"    last msg epoch:                         {DeviceLastMessageEpoch} [epoch ms]");
-        Console.WriteLine($"    session duration:                       {DeviceSessionDuration} [ms]");
-        //Console.WriteLine($"    rate (calculated):              {avgRateSource:0.0} [msg/s]");
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"    rate at device egress:                  {DeviceEgressRate:0.00} [msg/s]");
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine($"    throughput at device egress:            {DeviceEgressThroughputKBs:0.00} [KB/s]");
-        Console.WriteLine($"    avg (min/max) transmission duration:    {DeviceAvgTransmissionDuration:0.00} ({DeviceMinTransmissionDuration:0.00}/{DeviceMaxTransmissionDuration:0.00}) [ms]");
-        Console.WriteLine($"    avg (min/max) cycle duration:           {DeviceAvgCycleDuration:0.00} ({DeviceMinCycleDuration:0.00}/{DeviceMaxCycleDuration:0.00}) [ms]");
-        Console.WriteLine($"    timing violations count:                {DeviceTimingsViolationsCount:0.00}");
-
-
-        Console.WriteLine("");
-        Console.WriteLine($"IOT HUB:");
-        Console.WriteLine($"    message count:                          {IotHubMessageCount} [msg]");
-        Console.WriteLine($"    fist msg epoch:                         {IotHubFirstMessageEpoch} [epoch ms]");
-        Console.WriteLine($"    last msg epoch:                         {IotHubLastMessageEpoch} [epoch ms]");
-        Console.WriteLine($"    session duration:                       {IotHubSessionDuration:0.00} [ms]");
-        //Console.WriteLine($"    rate (at IoT HUB ingress, count/5s)     {asaEstimatedRate:0.00} [msg/s]");
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"    rate at IoT HUB ingress:                {IotHubIngressRate:0.00} [msg/s]");
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine($"    throughput at IoT HUB ingress:          {IotHubIngressThroughputKBs:0.00} [KB/s]");
-        //Console.WriteLine($"    rate (at ASA ingress):                  {asaEstimatedRateAsa:0.00} [msg/s]"); 
-
-        Console.WriteLine("");
-        Console.WriteLine($"LATENCY:");
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"    device to hub avg (min/max) latency:    {DeviceToIotHubAvgLatency:0.00} ({DeviceToIotHubMinLatency:0.00}/{DeviceToIotHubMaxLatency:0.00}) [ms]");
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine($"    hub to asa avg (min/max) latency:       {IotHubToAsaAvgLatency:0.00} ({IotHubToAsaMinLatency:0.00}/{IotHubToAsaMaxLatency:0.00}) [ms]");
     }
 
     public string ToCsvString()
