@@ -1,9 +1,10 @@
-namespace IoTEdgePerf.Transmitter
+namespace IotEdgePerf.Transmitter
 {
     using System;
     using Microsoft.Azure.Devices.Shared; // For TwinCollection
     using Newtonsoft.Json;
-    using IoTEdgePerf.Shared;
+    using IotEdgePerf.Shared;
+    using Serilog;
     
     public static class TransmitterConfig
     {
@@ -13,12 +14,12 @@ namespace IoTEdgePerf.Transmitter
 
             if (value == null)
             {
-                Console.WriteLine("The required environment variable '{0}' was not found!", name);
+                Log.Error("The required environment variable '{0}' was not found!", name);
                 throw new System.ArgumentNullException();
             }
             else
             {
-                Console.WriteLine($"{name}, {description}: {value}");
+                Log.Information($"{name}, {description}: {value}");
                 return value;
             }
 

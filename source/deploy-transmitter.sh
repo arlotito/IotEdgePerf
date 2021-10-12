@@ -3,12 +3,12 @@
 
 HUB_NAME=$1
 DEVICE_NAME=$2
-deploymentManifestTemplate="./manifests/deployment.template.json"
-deploymentManifest="./manifests/deployment.json"
+deploymentManifestTemplate="../manifests/deployment.template.json"
+deploymentManifest="../manifests/deployment.json"
 
 # az login
 
-build=$(cat ./source/BUILD)
+build=$(cat ./BUILD)
 
 export upstream='$upstream'
 export edgeAgent='$edgeAgent'
@@ -24,7 +24,9 @@ result=$(az iot edge set-modules \
     --content $deploymentManifest)
 
 # remove deployment manifest
-# rm $deploymentManifest
+rm $deploymentManifest
+
+exit 0
 
 # restart edgeHub
 echo "restarting edgeHub module..."

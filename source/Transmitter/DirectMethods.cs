@@ -1,27 +1,28 @@
-namespace IoTEdgePerf.Transmitter
+namespace IotEdgePerf.Transmitter
 {
     using System;
     using System.Threading.Tasks;
     using System.Text;
     using Microsoft.Azure.Devices.Client;
     using Newtonsoft.Json;
-    using IoTEdgePerf.Shared;
+    using IotEdgePerf.Shared;
+    using Serilog;
     
     public partial class Transmitter : ITransmitter
     {
         public async Task RegisterDM()
         {
             // direct methods
-            await moduleClient.SetMethodHandlerAsync("Start", OnStartDm, this);
-            await moduleClient.SetMethodHandlerAsync("Restart", OnRestartDm, this);
+            await _moduleClient.SetMethodHandlerAsync("Start", OnStartDm, this);
+            await _moduleClient.SetMethodHandlerAsync("Restart", OnRestartDm, this);
         }
 
         private static Task<MethodResponse> OnStartDm(MethodRequest methodRequest, object userContext)
         {
             Transmitter senderMachine = (Transmitter)userContext;
             
-            Console.WriteLine($"{methodRequest.Name} was called.");
-            Console.WriteLine($"{methodRequest.DataAsJson}");
+            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
+            Log.Debug($"{methodRequest.DataAsJson}");
 
             var request = JsonConvert.DeserializeObject<TransmitterStartDmPayload>(methodRequest.DataAsJson);
             senderMachine.Start(request.runId, request.config);
@@ -35,8 +36,8 @@ namespace IoTEdgePerf.Transmitter
         {
             Transmitter senderMachine = (Transmitter)userContext;
             
-            Console.WriteLine($"{methodRequest.Name} was called.");
-            Console.WriteLine($"{methodRequest.DataAsJson}");
+            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
+            Log.Debug($"{methodRequest.DataAsJson}");
 
             var request = JsonConvert.DeserializeObject<TransmitterRestartDmPayload>(methodRequest.DataAsJson);
             senderMachine.Restart(request.runId);             

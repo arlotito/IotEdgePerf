@@ -1,9 +1,9 @@
 
-namespace IoTEdgePerf.Transmitter
+namespace IotEdgePerf.Transmitter
 {
     using System;
     using System.Threading.Tasks;
-    using IoTEdgePerf.Shared;
+    using IotEdgePerf.Shared;
 
     public interface ITransmitter
     {

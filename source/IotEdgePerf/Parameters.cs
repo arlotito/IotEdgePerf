@@ -3,7 +3,7 @@
 
 using System;
 using CommandLine;
-using IoTEdgePerf.Shared;
+using IotEdgePerf.Shared;
 
 namespace IotEdgePerf.ConsoleApp
 {
@@ -140,44 +140,44 @@ namespace IotEdgePerf.ConsoleApp
                     Environment.Exit(1);
                 });
 
-            EventHubName = Environment.GetEnvironmentVariable("EH_NAME");
+            _eventHubName = Environment.GetEnvironmentVariable("EH_NAME");
             if (!string.IsNullOrEmpty(_parameters.EventHubName))
             {
-                EventHubName = _parameters.EventHubName;
+                _eventHubName = _parameters.EventHubName;
             }
 
-            EventHubConnectionString = Environment.GetEnvironmentVariable("EH_CONN_STRING");
+            _eventHubConnectionString = Environment.GetEnvironmentVariable("EH_CONN_STRING");
             if (!string.IsNullOrEmpty(_parameters.EventHubConnectionString))
             {
-                EventHubConnectionString = _parameters.EventHubConnectionString;
+                _eventHubConnectionString = _parameters.EventHubConnectionString;
             }
 
-            IotHubConnectionString = Environment.GetEnvironmentVariable("IOT_CONN_STRING");
+            _iotHubConnectionString = Environment.GetEnvironmentVariable("IOT_CONN_STRING");
             if (!string.IsNullOrEmpty(_parameters.IotHubConnectionString))
             {
-                IotHubConnectionString = _parameters.IotHubConnectionString;
+                _iotHubConnectionString = _parameters.IotHubConnectionString;
             }
 
-            DeviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
+            _deviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
             if (!string.IsNullOrEmpty(_parameters.DeviceId))
             {
-                DeviceId = _parameters.DeviceId;
+                _deviceId = _parameters.DeviceId;
             }
 
             // check if EH info is provided
-            if (string.IsNullOrWhiteSpace(EventHubConnectionString)
-                || string.IsNullOrWhiteSpace(EventHubName))
+            if (string.IsNullOrWhiteSpace(_eventHubConnectionString)
+                || string.IsNullOrWhiteSpace(_eventHubName))
             {
                 Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(result, null, null));
                 Environment.Exit(1);
             }
 
-            double.TryParse(_parameters.Timeout, out TimeoutInterval);
-            ShowMsg = _parameters.ShowMsg;
-            CsvFile = _parameters.csvOutputFile;
-            TestLabel = _parameters.TestLabel;
+            double.TryParse(_parameters.Timeout, out _timeoutInterval);
+            _showMsg = _parameters.ShowMsg;
+            _csvFile = _parameters.csvOutputFile;
+            _customLabel = _parameters.TestLabel;
             
-            transmitterConfig = new TransmitterConfigData {
+            _transmitterConfigData = new TransmitterConfigData {
                 enable = true,
                 burstLength=_parameters.burstLength,
                 burstWait=_parameters.burstWait,

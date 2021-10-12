@@ -1,4 +1,5 @@
 BUILD
+**/packages
 
 # .NET Core
 project.lock.json
