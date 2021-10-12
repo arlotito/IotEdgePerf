@@ -60,7 +60,7 @@ namespace IotEdgePerf.ConsoleApp
             )
             {
                 // Create a ServiceClient to communicate with service-facing endpoint on your hub.
-                _iotEdgePerfService = new IotEdgePerfService(_iotHubConnectionString, _deviceId);
+                _iotEdgePerfService = new IotEdgePerfService(_iotHubConnectionString, _deviceId, "source");
 
                 // Apply config
                 await _iotEdgePerfService.Start(Guid.NewGuid(), _transmitterConfigData);
@@ -71,8 +71,14 @@ namespace IotEdgePerf.ConsoleApp
                 return;
             }
 
-            // 
-            _analyzer = new Analyzer(_transmitterConfigData, _csvFile, _customLabel);
+            // HostName=arturol76-s1-benchmark.a
+            _analyzer = new Analyzer(
+                _iotHubConnectionString.Split('.')[0].Replace("HostName=", ""),
+                _deviceId,
+                _transmitterConfigData,
+                _csvFile,
+                _customLabel
+            ); ;
 
             // listens to EH messages
             await ReceiveMessagesFromDeviceAsync(cts.Token);
@@ -96,7 +102,7 @@ namespace IotEdgePerf.ConsoleApp
             cts.Cancel();
 
             Console.WriteLine("\nThis analysis may be partial.");
-            _analyzer.AnalyzeData();
+            _analyzer.DoAnalysis();
         }
 
         // Asynchronously create a PartitionReceiver for a partition and then start
@@ -159,7 +165,7 @@ namespace IotEdgePerf.ConsoleApp
                                 if (msg.messageSequenceNumberInSession == expectedMessageCount)
                                 {
                                     Console.WriteLine("Completed.");
-                                    _analyzer.AnalyzeData();
+                                    _analyzer.DoAnalysis();
                                     return;
                                 }
                             }
