@@ -18,7 +18,7 @@ An example:
 ```bash
 dotnet run -- --payload-length=1024 --burst-length=10000 target-rate=1000
 ```
-![](/images/simple-example.png)
+![](/images/simple-example-annotations.png)
 
 # Getting started
 Pre-requisites:
