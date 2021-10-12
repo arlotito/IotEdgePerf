@@ -3,17 +3,21 @@ A framework and a CLI tool to measure throughput and end-to-end latency of an Io
 Useful for:
 * measuring the max rate/throughput and latency achievable
 * sizing HW (or VM) to meet the target rate/latency
-* optimizing rates/latency by fine-tuning message batching, number of modules/inputs/outputs, ...
-* performing long-run tests against target traffic load
-* understanding how rate/latency/queue are related
+* optimizing rates/latency by fine-tuning message batching...
 
 ![](./images/architecture.png)
 
 The framework includes:
 
 * a [transmitter](./source/transmitter/README.md) (1) module, to generate traffic (multiarch image on DockerHub: arlotito/iotedgeperf-transmitter [![for easy](https://img.shields.io/docker/v/arlotito/iotedgeperf-transmitter)](https://hub.docker.com/repository/docker/arlotito/iotedgeperf-transmitter))
-* an [ASA query](./asa/) (2), to measure the ingestion latency and rate
-* the [iotEdgePerf](./source/iotEdgePerf) (3) CLI app, to control the transmitter, to analyze the data produced by the ASA job and show the results
+* an [ASA query](./asa/) (3), to measure the ingestion latency and rate
+* the [iotEdgePerf](./source/iotEdgePerf) (4) CLI app, to control the transmitter, to analyze the data produced by the ASA job and show the results
+
+An example:
+```bash
+dotnet run -- --payload-length=1024 --burst-length=10000 target-rate=1000
+```
+![](/images/simple-example.png)
 
 # Getting started
 Pre-requisites:
