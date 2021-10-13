@@ -60,14 +60,13 @@ Run the test:
 ```bash
 dotnet run -p ./source/IotEdgePerf -- \
   --payload-length=1024 \
-  --burst-length=1000 \
-  --burst-number=1 \
-  --target-rate=100 \
+  --burst-length=10000 \
+  --target-rate=1000 \
   -o test.csv
 ```
 
 And here's the result:
-![](./images/simple-example.png)
+![](./images/example-10Kmsg-1Krate.png)
 
 ## Optionally build the iotEdgePerf tool
 On the DEV machine, build the iotEdgePerfTool as a self-contained binary:
