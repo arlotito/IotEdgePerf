@@ -37,7 +37,7 @@ namespace IotEdgePerf.Profiler
             this._sessionId = sessionId.ToString();
             this._messageSequenceNumberInSession = 0;
             this._timingViolationsCounter = 0;
-            Log.Debug("session started with id={0}", sessionId.ToString());
+            Log.Debug("profiler: session started with session id={0}", sessionId.ToString());
         }
 
         public void MessageCycleStart()

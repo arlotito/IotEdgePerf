@@ -1,5 +1,5 @@
 #!/bin/bash
-# example: ./deploy-transmitter.sh arturol76-s1-benchmark standard-ds3-v2-edge-1-2-1631626847 200 arlotito/iotedgeperf-transmitter:0.4.1
+# example: ./deploy-transmitter.sh arturol76-s1-benchmark standard-ds3-v2-edge-1-2-1631626847 200 arlotito/iotedgeperf-transmitter:0.4.4
 
 HUB_NAME=$1
 DEVICE_NAME=$2

@@ -1,9 +1,9 @@
 # iotEdgePerf
 A framework and a CLI tool to measure throughput and end-to-end latency of an IoT Edge.
 Useful for:
-* measuring the max rate/throughput and latency achievable
-* sizing HW (or VM) to meet the target rate/latency
-* optimizing rates/latency by fine-tuning message batching...
+* measuring the rate/throughput at transmitter egress (A) and iot hub ingress (B) along with the A-to-B latency
+* sizing HW (or VM) to meet the target rate/latency or assessing the maximum rate/throughput achievable on a given configuration
+* optimizing rates/latency by fine-tuning message batching
 
 ![](./images/architecture.png)
 
@@ -52,9 +52,9 @@ export EH_CONN_STRING="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKey
 
 Deploy the transmitter module:
 ```bash
-./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200 arlotito/iotedgeperf-transmitter:0.4.1
+./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200 arlotito/iotedgeperf-transmitter:0.4.4
 ```
-That sets "MaxUpstreamBatchSize" to 200. Change it to your needs.
+That sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. Change it to fit your needs.
 
 Run the test:
 ```bash

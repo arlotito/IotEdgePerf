@@ -14,7 +14,7 @@ echo $new_build > BUILD
 export DOCKERFILE_PATH="."
 export IMAGE_NAME="arlotito/iotedgeperf-transmitter"
 #export IMAGE_TAG="0.4.$new_build"
-export IMAGE_TAG="0.4.1"
+export IMAGE_TAG="0.4.4"
 
 echo Building and pushing to "$IMAGE_NAME:$IMAGE_TAG"
 

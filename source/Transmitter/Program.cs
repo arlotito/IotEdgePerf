@@ -66,8 +66,10 @@ namespace transmitter
             Init().Wait();
 
             await _transmitter.RegisterDM();
-            _transmitter.Start(Guid.NewGuid(), TransmitterConfig.GetFromTwin(_twin));
 
+            // applies initial configuration from twins
+            _transmitter.ApplyConfiguration(TransmitterConfig.GetFromTwin(_twin));
+            
             while (true)
             {
                 await _transmitter.SendMessagesAsync();
@@ -79,7 +81,6 @@ namespace transmitter
             try
             {
                 Log.Debug("Desired property change:\n{0}", JsonConvert.SerializeObject(desiredProperties));
-
                 _twin = desiredProperties;
             }
 

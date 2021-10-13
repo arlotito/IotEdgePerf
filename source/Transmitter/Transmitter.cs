@@ -14,7 +14,7 @@ namespace IotEdgePerf.Transmitter
     using IotEdgePerf.Shared;
     using IotEdgePerf.Profiler;
 
-    public partial class Transmitter : ITransmitter
+    public partial class Transmitter
     {
         ModuleClient _moduleClient;
         string _moduleOutput;
@@ -32,18 +32,17 @@ namespace IotEdgePerf.Transmitter
             this._resetRequest.Set(false);
         }
 
-        public void Restart(Guid runId)
+        public void Start(Guid runId)
         {
             this._runId = runId;
             this._resetRequest.Set(true);
+            this._config.enable=true; //enables the transmitter
         }
 
-        public void Start(Guid runId, TransmitterConfigData config)
+        public void ApplyConfiguration(TransmitterConfigData config)
         {
             this._config = config;
             Log.Information("New configuration applied:\n{0}", JsonConvert.SerializeObject(this._config, Formatting.Indented));
-
-            this.Restart(runId);
         }
 
         /// <summary>
@@ -71,7 +70,8 @@ namespace IotEdgePerf.Transmitter
             var profiler = new Profiler();
             double cyclePeriodMilliseconds;
 
-            if (!this._config.enable) return; // do nothing
+            if (!this._config.enable) 
+                return; // do nothing
 
             if (this._resetRequest)
             {
@@ -82,6 +82,7 @@ namespace IotEdgePerf.Transmitter
             // wait before starting
             Log.Information($"waiting {_config.waitBeforeStart} ms before starting...");
             Thread.Sleep(this._config.waitBeforeStart);
+            Log.Information($"transmission started.");
 
             // 
             Log.Information($"Run ID: {_runId}");

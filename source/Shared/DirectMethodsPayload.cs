@@ -7,9 +7,4 @@ namespace IotEdgePerf.Shared
         public Guid runId;
         public TransmitterConfigData config;
     }
-
-    public class TransmitterRestartDmPayload
-    {
-        public Guid runId;
-    }
 }
