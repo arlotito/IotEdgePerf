@@ -1,5 +1,5 @@
 #!/bin/bash
-# example: ./deploy-transmitter.sh arturol76-s1-benchmark standard-ds3-v2-edge-1-2-1631626847 200
+# example: ./deploy-transmitter.sh arturol76-s1-benchmark standard-ds3-v2-edge-1-2-1631626847 200 arlotito/iotedgeperf-transmitter:0.4.1
 
 HUB_NAME=$1
 DEVICE_NAME=$2
@@ -14,9 +14,12 @@ export upstream='$upstream'
 export edgeAgent='$edgeAgent'
 export edgeHub='$edgeHub'
 export MaxUpstreamBatchSize="${3}"
-export IMAGE="arlotito/profiler:0.3.$build"
+#export IMAGE="arlotito/profiler:0.3.$build"
+export IMAGE="$4"
 cat $deploymentManifestTemplate | envsubst > $deploymentManifest
 
+echo "MaxUpstreamBatchSize=$MaxUpstreamBatchSize"
+echo "image: $IMAGE"
 echo "deploying manifest '$deploymentManifest'..."
 result=$(az iot edge set-modules \
     -n $HUB_NAME \
@@ -24,7 +27,7 @@ result=$(az iot edge set-modules \
     --content $deploymentManifest)
 
 # remove deployment manifest
-# rm $deploymentManifest
+rm $deploymentManifest
 
 # restart edgeHub
 echo "restarting edgeHub module..."
