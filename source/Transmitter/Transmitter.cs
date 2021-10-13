@@ -23,19 +23,19 @@ namespace IotEdgePerf.Transmitter
 
         Guid _runId;
 
-        bool _resetRequest;
+        readonly AtomicBoolean _resetRequest = new AtomicBoolean(false);
 
         public Transmitter(ModuleClient moduleClient, string moduleOutput)
         {
             this._moduleClient = moduleClient;
             this._moduleOutput = moduleOutput;
-            this._resetRequest = false;
+            this._resetRequest.Set(false);
         }
 
         public void Restart(Guid runId)
         {
             this._runId = runId;
-            _resetRequest = true;
+            this._resetRequest.Set(true);
         }
 
         public void Start(Guid runId, TransmitterConfigData config)
@@ -71,12 +71,12 @@ namespace IotEdgePerf.Transmitter
             var profiler = new Profiler();
             double cyclePeriodMilliseconds;
 
-            if (!_config.enable) return; // do nothing
+            if (!this._config.enable) return; // do nothing
 
-            if (_resetRequest)
+            if (this._resetRequest)
             {
                 Log.Information("reset executed.");
-                _resetRequest = false;
+                this._resetRequest.Set(false);
             }
 
             // wait before starting
