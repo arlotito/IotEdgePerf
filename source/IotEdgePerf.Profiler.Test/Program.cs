@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading;
-using IotEdgePerf.Profiler;
+using IotEdgePerf.Profiler.Test;
 
 namespace ProfilerTest
 {
