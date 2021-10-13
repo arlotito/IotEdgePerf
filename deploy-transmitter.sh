@@ -14,7 +14,6 @@ export upstream='$upstream'
 export edgeAgent='$edgeAgent'
 export edgeHub='$edgeHub'
 export MaxUpstreamBatchSize="${3}"
-#export IMAGE="arlotito/profiler:0.3.$build"
 export IMAGE="$4"
 cat $deploymentManifestTemplate | envsubst > $deploymentManifest
 
