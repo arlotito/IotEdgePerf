@@ -9,8 +9,9 @@ Useful for:
 
 The framework includes:
 
-* a [transmitter](./source/Transmitter/README.md) (1) module, to generate traffic 
+* a [transmitter module](./source/Transmitter/README.md) (1), to generate traffic 
   (arlotito/iotedgeperf-transmitter [![for easy](https://img.shields.io/docker/v/arlotito/iotedgeperf-transmitter)](https://hub.docker.com/repository/docker/arlotito/iotedgeperf-transmitter))
+* a Profiler class (2), ...
 * an [ASA query](./asa/) (3), to measure the ingestion latency and rate
 * the [iotEdgePerf](./source/IotEdgePerf) (4) CLI app, to control the transmitter, to analyze the data produced by the ASA job and show the results
 
