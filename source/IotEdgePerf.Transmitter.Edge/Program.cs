@@ -1,18 +1,22 @@
-namespace transmitter
+namespace IotEdgePerf.Transmitter.Edge
 {
     using System;
     using System.Threading.Tasks;
+    using System.Text;
+
+    using Newtonsoft.Json;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared; // For TwinCollection
-    using Newtonsoft.Json;
-
+    
     using Serilog;
     using Serilog.Core;
-
-    using IotEdgePerf.Transmitter;
     using Serilog.Events;
 
+    using IotEdgePerf.Transmitter;
+    using IotEdgePerf.Shared;
+    
     class Program
     {
         static ModuleClient _ioTHubModuleClient;
@@ -22,7 +26,7 @@ namespace transmitter
         static string _iotHubHostname = Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME");
         static LoggingLevelSwitch _logLevelSwitch = new LoggingLevelSwitch();
 
-        static Transmitter _transmitter;
+        static TransmitterLogic _transmitter;
         
         static TwinCollection _twin;
 
@@ -64,15 +68,10 @@ namespace transmitter
                 .CreateLogger();
             
             Init().Wait();
-
-            await _transmitter.RegisterDM();
-
-            // applies initial configuration from twins
-            _transmitter.ApplyConfiguration(TransmitterConfig.GetFromTwin(_twin));
             
             while (true)
             {
-                await _transmitter.SendMessagesAsync();
+                await _transmitter.LoopAsync();
             }
         }
 
@@ -100,8 +99,6 @@ namespace transmitter
             return Task.CompletedTask;
         }
 
-        
-
         /// <summary>
         /// Initializes the ModuleClient and sets up the callback to receive
         /// messages containing temperature information
@@ -124,8 +121,41 @@ namespace transmitter
             Log.Information($"Device id: '{_deviceId}'");
             Log.Information($"IoT HUB: '{_iotHubHostname}'");
 
-            // 
-            _transmitter = new Transmitter(_ioTHubModuleClient, _moduleOutput);
+            // creat an instance
+            _transmitter = new TransmitterLogic();
+
+            // events handlers
+            _transmitter.SendMessage += OnSendMessage;
+            _transmitter.SendMessageBatch += null;
+
+            // direct methods handler
+            await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
+
+            // applies initial configuration from twins
+            _transmitter.ApplyConfiguration(TransmitterConfig.GetFromTwin(_twin));
+        }
+
+        private static Task<MethodResponse> OnStartDm(MethodRequest methodRequest, object userContext)
+        {
+            TransmitterLogic transmitter = (TransmitterLogic)userContext;
+            
+            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
+            Log.Debug($"{methodRequest.DataAsJson}");
+
+            var request = JsonConvert.DeserializeObject<TransmitterStartDmPayload>(methodRequest.DataAsJson);
+
+            transmitter.ApplyConfiguration(request.config);
+            transmitter.Start(request.runId);
+            
+            // Acknowlege the direct method call with a 200 success message
+            string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
+            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
+        }
+
+        private async static void OnSendMessage(string message)
+        {
+            var azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
+            await _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage);
         }
     }
 }

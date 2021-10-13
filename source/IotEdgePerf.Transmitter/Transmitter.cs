@@ -5,7 +5,7 @@ namespace IotEdgePerf.Transmitter
     using System.Threading.Tasks;
     using System.Diagnostics;
     using System.Text;
-    using Microsoft.Azure.Devices.Client;
+    
     using System.Collections.Generic;
     using Newtonsoft.Json;
 
@@ -14,10 +14,13 @@ namespace IotEdgePerf.Transmitter
     using IotEdgePerf.Shared;
     using IotEdgePerf.Profiler;
 
-    public partial class Transmitter
+    public delegate void SendMessageEvent(string message);
+    public delegate void SendMessageBatchEvent(List<string> messageBatch);
+
+    public partial class TransmitterLogic
     {
-        ModuleClient _moduleClient;
-        string _moduleOutput;
+        public event SendMessageEvent SendMessage; // event
+        public event SendMessageBatchEvent SendMessageBatch;
 
         TransmitterConfigData _config;
 
@@ -25,10 +28,20 @@ namespace IotEdgePerf.Transmitter
 
         readonly AtomicBoolean _resetRequest = new AtomicBoolean(false);
 
-        public Transmitter(ModuleClient moduleClient, string moduleOutput)
+        protected virtual void OnSendMessage(string message) //protected virtual method
         {
-            this._moduleClient = moduleClient;
-            this._moduleOutput = moduleOutput;
+            //if ProcessCompleted is not null then call delegate
+            SendMessage?.Invoke(message); 
+        }
+
+        protected virtual void OnSendMessageBatch(List<string> messageBatch, string output) //protected virtual method
+        {
+            //if ProcessCompleted is not null then call delegate
+            SendMessageBatch?.Invoke(messageBatch); 
+        }
+
+        public TransmitterLogic()
+        {
             this._resetRequest.Set(false);
         }
 
@@ -65,7 +78,7 @@ namespace IotEdgePerf.Transmitter
             return new String(stringChars);
         }
 
-        public async Task SendMessagesAsync()
+        public async Task LoopAsync()
         {
             var profiler = new Profiler();
             double cyclePeriodMilliseconds;
@@ -114,7 +127,7 @@ namespace IotEdgePerf.Transmitter
                         return; // not complete
                     }
 
-                    var messageBatch = new List<Message>();
+                    var messageBatch = new List<string>();
 
                     // create single message or batch of messages
                     for (int k = 0; k < this._config.batchSize; k++)
@@ -142,19 +155,18 @@ namespace IotEdgePerf.Transmitter
                         //Log.Debug("mergedMessage: \n{0} \nlength: {1}", mergedMessageString, mergedMessageString.Length);
 
                         // creates the message for the SendEventAsync / SendEventBatchAsync
-                        var message = new Message(Encoding.ASCII.GetBytes(mergedMessageString));
-                        messageBatch.Add(message);
+                        messageBatch.Add(mergedMessageString);
                     }
 
                     // sends the message
                     profiler.MessageTransmissionStart();
                     if (messageBatch.Count == 1)
-                        await _moduleClient.SendEventAsync(this._moduleOutput, messageBatch[0]);
+                        this.SendMessage(messageBatch[0]);
                     else
-                        await _moduleClient.SendEventBatchAsync(this._moduleOutput, messageBatch);
+                        this.SendMessageBatch(messageBatch);
                     profiler.MessageTransmissionCompleted();
 
-                    // waitsto achieve desired target rate
+                    // waits to achieve desired target rate
                     profiler.WaitToAchieveDesiredRate(cyclePeriodMilliseconds);
                 }
 
