@@ -52,7 +52,7 @@ export EH_CONN_STRING="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKey
 
 Deploy the transmitter module:
 ```bash
-./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200
+./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200 arlotito/iotedgeperf-transmitter:0.4.1
 ```
 That sets "MaxUpstreamBatchSize" to 200. Change it to your needs.
 
@@ -67,7 +67,7 @@ dotnet run -p ./source/IotEdgePerf -- \
 ```
 
 And here's the result:
-![](./images/cli.png)
+![](./images/simple-example.png)
 
 ## Optionally build the iotEdgePerf tool
 On the DEV machine, build the iotEdgePerfTool as a self-contained binary:
