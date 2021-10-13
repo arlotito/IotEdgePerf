@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <Compile Include="..\IotEdgePerf.Shared\**" />
+    <Compile Include="..\IotEdgePerf.Service\**" />
+    <Compile Include="..\IotEdgePerf.Analysis\**" />
   </ItemGroup>
 
 </Project>

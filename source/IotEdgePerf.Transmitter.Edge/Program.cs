@@ -57,7 +57,7 @@ namespace IotEdgePerf.Transmitter.Edge
             }
         }
         
-        async static Task Main(string[] args)
+        static void Main(string[] args)
         {
             GetLogLevelFromEnv();
 
@@ -71,7 +71,7 @@ namespace IotEdgePerf.Transmitter.Edge
             
             while (true)
             {
-                await _transmitter.LoopAsync();
+                _transmitter.Send();
             }
         }
 
@@ -152,10 +152,10 @@ namespace IotEdgePerf.Transmitter.Edge
             return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
         }
 
-        private async static void OnSendMessage(string message)
+        private static void OnSendMessage(string message)
         {
-            var azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
-            await _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage);
+            Message azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
+            _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage).Wait();
         }
     }
 }

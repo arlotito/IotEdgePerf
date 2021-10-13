@@ -78,7 +78,7 @@ namespace IotEdgePerf.Transmitter
             return new String(stringChars);
         }
 
-        public async Task LoopAsync()
+        public void Send()
         {
             var profiler = new Profiler();
             double cyclePeriodMilliseconds;
@@ -176,7 +176,7 @@ namespace IotEdgePerf.Transmitter
                     profiler.ShowSessionSummary();
                 }
 
-                await Task.Delay(this._config.burstWait); //wait even if last burst
+                Task.Delay(this._config.burstWait); //wait even if last burst
             }
 
             // stops further transmissions.
