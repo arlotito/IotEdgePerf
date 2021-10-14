@@ -16,28 +16,32 @@ namespace IotEdgePerf.Profiler
         Stopwatch _messageCycleStopwatch; //measures the transmission duration
         Stopwatch _transmissionStopwatch; // measures time during burst
 
-        string _sessionId;
+        string  _sessionId;
+        int     _burstSequenceNumberInSession;
         int     _messageSequenceNumberInSession;
         double  _sessionElapsedMilliseconds;
-        double?  _previousTransmissionDurationMilliseconds;
-        double?  _previousMessageCycleDurationMilliseconds;
-        double _messageTimestampMilliseconds;
+        double? _previousTransmissionDurationMilliseconds;
+        double? _previousMessageCycleDurationMilliseconds;
+        double  _messageTimestampMilliseconds;
         double? _rollingRate;
         int     _timingViolationsCounter;
 
-        public Profiler()
+        public Profiler(Guid sessionId)
         {
+            this._sessionId = sessionId.ToString();
             _sessionStopwatch = new Stopwatch();
             _messageCycleStopwatch = new Stopwatch();
             _transmissionStopwatch = new Stopwatch();
+            this._burstSequenceNumberInSession = 0;
+            Log.Debug("profiler: session started with session id={0}", sessionId.ToString());
         }
 
-        public void SessionStart(Guid sessionId)
+        public void BurstStart()
         {
-            this._sessionId = sessionId.ToString();
             this._messageSequenceNumberInSession = 0;
             this._timingViolationsCounter = 0;
-            Log.Debug("profiler: session started with session id={0}", sessionId.ToString());
+            this._burstSequenceNumberInSession++;
+            Log.Debug("profiler: burst #{0} started.", this._burstSequenceNumberInSession);
         }
 
         public void MessageCycleStart()
@@ -47,7 +51,7 @@ namespace IotEdgePerf.Profiler
             
             if (_messageSequenceNumberInSession == 1)
             {
-                // this is the 1st message of the session
+                // this is the 1st message of the session / burst
                 this._sessionStopwatch.Restart();
                 this._sessionElapsedMilliseconds = 0;
                 this._previousMessageCycleDurationMilliseconds = null;
@@ -126,41 +130,22 @@ namespace IotEdgePerf.Profiler
             );
         }
 
-        public PerfTelemetryMessage DoProfiling()
+        public PerfTelemetryMessage GetProfilingTelemetry()
         {
-            var perfMessage = new PerfTelemetryMessage
+            var perfMessage = new PerfTelemetryMessage 
             {
-                sessionId = this._sessionId,
-                sessionTimeElapsedMilliseconds = this._sessionElapsedMilliseconds,
-
-                messageSequenceNumberInSession = this._messageSequenceNumberInSession,
-
-                sessionRollingRate = this._rollingRate,
-
-                messageTimestampMilliseconds    = this._messageTimestampMilliseconds,
-                previousTransmissionDurationMilliseconds = this._previousTransmissionDurationMilliseconds,
-                previousMessageCycleDurationMilliseconds = this._previousMessageCycleDurationMilliseconds,
-
-                timingViolationsCounter = this._timingViolationsCounter
+                id = this._sessionId,                       
+                bc = this._burstSequenceNumberInSession,    
+                el = this._sessionElapsedMilliseconds,
+                mc = this._messageSequenceNumberInSession,
+                rt = this._rollingRate,
+                ts = this._messageTimestampMilliseconds,
+                pt = this._previousTransmissionDurationMilliseconds,
+                pc = this._previousMessageCycleDurationMilliseconds,
+                vc = this._timingViolationsCounter
             };
 
             return perfMessage;
-        }
-
-        static public string AddProfilingDataAndSerialize(object baseObject, PerfTelemetryMessage perfMessage)
-        {
-            var jObject = JObject.FromObject(baseObject);
-            jObject.Add(new JProperty("iotEdgePerf", JToken.FromObject(perfMessage)));
-                        
-            return jObject.ToString(Formatting.None);
-        }
-
-        static public string AddProfilingDataAndSerialize(string baseMessage, string addOnMessage)
-        {
-            var jObject = JObject.Parse(baseMessage);
-            jObject.Add(new JProperty("iotEdgePerf", JToken.Parse(addOnMessage)));
-                        
-            return jObject.ToString(Formatting.None);
         }
     }
 }

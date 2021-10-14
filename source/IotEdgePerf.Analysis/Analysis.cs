@@ -6,10 +6,11 @@ using System.Linq;
 
 namespace IotEdgePerf.Analysis
 {
-    public class AnalysisData
+    public class BurstAnalysisData
     {
         public string CustomLabel;
         public string SessionId;
+        public double BurstCounter;
 
         public TransmitterConfigData Config;
 
@@ -53,6 +54,7 @@ namespace IotEdgePerf.Analysis
             Console.WriteLine($"session ID:     {SessionId}");
             Console.WriteLine($"IoT HUB:        {iotHubHostname}");
             Console.WriteLine($"device ID:      {deviceId}");
+            Console.WriteLine($"burst counter:  {BurstCounter}");
             Console.WriteLine($"message count:  {DeviceMessageCount} [msg]");
             Console.WriteLine($"message size:   {Config.payloadLength} [bytes]");
             Console.WriteLine($"raget rate:     {Config.targetRate} [msg/s]");
@@ -91,6 +93,7 @@ namespace IotEdgePerf.Analysis
             csvRow += String.Format($"{iotHubHostname},");
             csvRow += String.Format($"{deviceId},");
             csvRow += String.Format($"{SessionId},");
+            csvRow += String.Format($"{BurstCounter},");
             csvRow += String.Format($"{Config.payloadLength},");
             csvRow += String.Format($"{Config.burstLength},");
             csvRow += String.Format($"{Config.targetRate},");
@@ -115,6 +118,7 @@ namespace IotEdgePerf.Analysis
             csvRow += String.Format($"iotHubHostname,");
             csvRow += String.Format($"deviceId,");
             csvRow += String.Format($"SessionId,");
+            csvRow += String.Format($"BurstCounter,");
             csvRow += String.Format($"Config.payloadLength,");
             csvRow += String.Format($"Config.burstLength,");
             csvRow += String.Format($"Config.targetRate,");
@@ -133,7 +137,7 @@ namespace IotEdgePerf.Analysis
 
     }
 
-    partial class Analyzer
+    partial class BurstAnalyzer
     {
         List<AsaMessage> _messagesList;
         TransmitterConfigData _config;
@@ -141,9 +145,9 @@ namespace IotEdgePerf.Analysis
         string _deviceId;
         string _csvFilename;
         string _customLabel;
-        double _receivedMessageCount;
-
-        public Analyzer(
+        int _receivedMessageCount;
+ 
+        public BurstAnalyzer(
             string iotHubHostname,
             string deviceId,
             TransmitterConfigData config, string csvFilename, string customLabel)
@@ -157,10 +161,10 @@ namespace IotEdgePerf.Analysis
             this._receivedMessageCount = 0;
         }
 
-        public double Add(AsaMessage msg)
+        public int AddMessage(AsaMessage msg)
         {
             this._messagesList.Add(msg);
-            this._receivedMessageCount += msg.asaMessageCount;
+            this._receivedMessageCount += (int)msg.asaMessageCount;
 
             return this._receivedMessageCount;
         }
@@ -172,13 +176,13 @@ namespace IotEdgePerf.Analysis
 
             // group by burstCounter
             var query = from item in _messagesList
-                        group item by item.sessionId into sessionGroup
+                        group item by (item.sessionId, item.burstCounter) into sessionGroup
                         orderby sessionGroup.Key ascending
                         select sessionGroup;
 
             // if needed, creates file with header
             if (!File.Exists(this._csvFilename))
-                File.AppendAllText(_csvFilename, new AnalysisData().GetCsvHeader());
+                File.AppendAllText(_csvFilename, new BurstAnalysisData().GetCsvHeader());
 
             // perform analysis
             foreach (var sessionGroup in query)
@@ -188,7 +192,7 @@ namespace IotEdgePerf.Analysis
                 AsaMessage firstIotHubMessage = sessionGroup.OrderBy(item => item.firstIotHubEpoch).First();
                 AsaMessage lastIotHubMessage = sessionGroup.OrderBy(item => item.lastIotHubEpoch).Last();
 
-                var analysisData = new AnalysisData
+                var burstAnalysisData = new BurstAnalysisData
                 {
                     CustomLabel = this._customLabel,
                     Config = this._config,
@@ -197,6 +201,7 @@ namespace IotEdgePerf.Analysis
                     deviceId = this._deviceId,
 
                     SessionId = lastDeviceMessage.sessionId,
+                    BurstCounter = lastDeviceMessage.burstCounter,
 
                     // device
                     DeviceFirstMessageEpoch = firstDeviceMessage.firstMessageEpoch,
@@ -235,26 +240,26 @@ namespace IotEdgePerf.Analysis
                 };
 
                 // throughput
-                if (analysisData.DeviceEgressRate != null)
-                    analysisData.DeviceEgressThroughputKBs = (double)analysisData.DeviceEgressRate * analysisData.Config.payloadLength / 1024;
+                if (burstAnalysisData.DeviceEgressRate != null)
+                    burstAnalysisData.DeviceEgressThroughputKBs = (double)burstAnalysisData.DeviceEgressRate * burstAnalysisData.Config.payloadLength / 1024;
                 else
-                    analysisData.DeviceEgressRate = 0;
+                    burstAnalysisData.DeviceEgressRate = 0;
 
-                if (analysisData.IotHubIngressRate != null)
-                    analysisData.IotHubIngressThroughputKBs = (double)analysisData.IotHubIngressRate * analysisData.Config.payloadLength / 1024;
+                if (burstAnalysisData.IotHubIngressRate != null)
+                    burstAnalysisData.IotHubIngressThroughputKBs = (double)burstAnalysisData.IotHubIngressRate * burstAnalysisData.Config.payloadLength / 1024;
                 else
-                    analysisData.IotHubIngressThroughputKBs = 0;
+                    burstAnalysisData.IotHubIngressThroughputKBs = 0;
 
                 // removes offset
-                analysisData.DeviceToIotHubAvgLatency -= analysisData.DeviceToIotHubMinLatency;
-                analysisData.DeviceToIotHubMinLatency -= analysisData.DeviceToIotHubMinLatency;
-                analysisData.DeviceToIotHubMaxLatency -= analysisData.DeviceToIotHubMinLatency;
+                burstAnalysisData.DeviceToIotHubAvgLatency -= burstAnalysisData.DeviceToIotHubMinLatency;
+                burstAnalysisData.DeviceToIotHubMinLatency -= burstAnalysisData.DeviceToIotHubMinLatency;
+                burstAnalysisData.DeviceToIotHubMaxLatency -= burstAnalysisData.DeviceToIotHubMinLatency;
 
                 // print to screen
-                analysisData.Show();
+                burstAnalysisData.Show();
 
                 // saves to CSV file
-                File.AppendAllText(_csvFilename, analysisData.ToCsvString());
+                File.AppendAllText(_csvFilename, burstAnalysisData.ToCsvString());
             }
 
 

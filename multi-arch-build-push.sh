@@ -16,8 +16,8 @@ docker buildx use cross-platform-build
 export IMAGE_NAME="$1"
 echo Building and pushing to "$IMAGE_NAME"
 
-sudo docker buildx build -f ./Dockerfile.multi \
+sudo docker buildx build -f ./source/modules/Transmitter/Dockerfile.multi \
         --platform linux/arm/v7,linux/arm64,linux/amd64 \
         -t $IMAGE_NAME \
         --push \
-        ./../../../
+        .

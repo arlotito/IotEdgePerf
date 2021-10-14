@@ -14,6 +14,8 @@ export upstream='$upstream'
 export edgeAgent='$edgeAgent'
 export edgeHub='$edgeHub'
 export MaxUpstreamBatchSize="${3}"
+export EdgeHubRuntimeLogLevel="info"
+export TransmitterRuntimeLogLevel="info"
 export IMAGE="$4"
 cat $deploymentManifestTemplate | envsubst > $deploymentManifest
 

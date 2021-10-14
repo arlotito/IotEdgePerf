@@ -19,25 +19,25 @@ namespace IotEdgePerf.Transmitter
 
     public partial class TransmitterLogic
     {
-        public event SendMessageEvent SendMessage; // event
-        public event SendMessageBatchEvent SendMessageBatch;
+        public event SendMessageEvent SendMessageHandler; // event
+        public event SendMessageBatchEvent SendMessageBatchHandler;
 
         TransmitterConfigData _config;
 
-        Guid _runId;
+        Guid _sessionId;
 
         readonly AtomicBoolean _resetRequest = new AtomicBoolean(false);
 
         protected virtual void OnSendMessage(string message) //protected virtual method
         {
             //if ProcessCompleted is not null then call delegate
-            SendMessage?.Invoke(message); 
+            SendMessageHandler?.Invoke(message); 
         }
 
         protected virtual void OnSendMessageBatch(List<string> messageBatch, string output) //protected virtual method
         {
             //if ProcessCompleted is not null then call delegate
-            SendMessageBatch?.Invoke(messageBatch); 
+            SendMessageBatchHandler?.Invoke(messageBatch); 
         }
 
         public TransmitterLogic()
@@ -47,7 +47,7 @@ namespace IotEdgePerf.Transmitter
 
         public void Start(Guid runId)
         {
-            this._runId = runId;
+            this._sessionId = runId;
             this._resetRequest.Set(true);
             this._config.enable=true; //enables the transmitter
         }
@@ -80,12 +80,12 @@ namespace IotEdgePerf.Transmitter
 
         public void Send()
         {
-            var profiler = new Profiler();
             double cyclePeriodMilliseconds;
 
             if (!this._config.enable) 
                 return; // do nothing
 
+            // clears the resetRequest flag if raised
             if (this._resetRequest)
             {
                 Log.Information("reset executed.");
@@ -98,7 +98,7 @@ namespace IotEdgePerf.Transmitter
             Log.Information($"transmission started.");
 
             // 
-            Log.Information($"Run ID: {_runId}");
+            Log.Information($"Run ID: {_sessionId}");
 
             // calculates time period
             if (this._config.targetRate > 0)
@@ -107,9 +107,11 @@ namespace IotEdgePerf.Transmitter
                 cyclePeriodMilliseconds = 0;
             Log.Information($"(calculated) cycle period [ms]: {cyclePeriodMilliseconds}");
 
+            var profiler = new Profiler(_sessionId);
+
             for (int burstIndex = 0; burstIndex < this._config.burstNumber; burstIndex++)
             {
-                profiler.SessionStart(_runId);
+                profiler.BurstStart();
 
                 Log.Debug("Burst index: {0}", burstIndex);
 
@@ -133,37 +135,30 @@ namespace IotEdgePerf.Transmitter
                     for (int k = 0; k < this._config.batchSize; k++)
                     {
                         // gets profiling data
-                        var perfMessage = profiler.DoProfiling();
-                        string perfMessageJson = JsonConvert.SerializeObject(perfMessage);
-                        //Log.Debug("perfMessage: \n{0} \nlength: {1}", perfMessageJson, perfMessageJson.Length);
+                        PerfTelemetryMessage perfMessage = profiler.GetProfilingTelemetry();
+                        Log.Debug("perfMessage: \n{0}", perfMessage.Json);
 
-                        // create a sample payload
-                        int bytesToBeAdded = this._config.payloadLength;
-                        bytesToBeAdded -= (perfMessageJson.Length + 14); //"iotEdgePerf":
-                        bytesToBeAdded -= 15; //{"payload":"",}
-                        if (bytesToBeAdded < 0) bytesToBeAdded=0;
-                        var applicationPayload = new
+                        // create an application payload. The resulting length must be equal to 'this._config.payloadLength'
+                        int minimumLength = (perfMessage.Json.Length + perfMessage.KeyName.Length + 3) + 15; //{"p":<perfMessage>,"payload":"<randomString>"}
+                        int delta = (this._config.payloadLength > minimumLength) ? (this._config.payloadLength - minimumLength) : 0;
+                        var applicationObject = new
                         {
-                            //"payload":
-                            payload = RandomString(bytesToBeAdded)
+                            payload = RandomString(delta)
                         };
-                        string applicationPayloadJson = JsonConvert.SerializeObject(applicationPayload);
-                        //Log.Debug("applicationPayload: \n{0} \nlength: {1}", applicationPayloadJson, applicationPayloadJson.Length);
-
-                        //
-                        var mergedMessageString = Profiler.AddProfilingDataAndSerialize(applicationPayloadJson, perfMessageJson);
-                        //Log.Debug("mergedMessage: \n{0} \nlength: {1}", mergedMessageString, mergedMessageString.Length);
+                        
+                        string mergedMessageJson = perfMessage.AddTo(applicationObject);
+                        Log.Debug("mergedMessage length: {0}", mergedMessageJson.Length);
 
                         // creates the message for the SendEventAsync / SendEventBatchAsync
-                        messageBatch.Add(mergedMessageString);
+                        messageBatch.Add(mergedMessageJson);
                     }
 
                     // sends the message
                     profiler.MessageTransmissionStart();
                     if (messageBatch.Count == 1)
-                        this.SendMessage(messageBatch[0]);
+                        this.SendMessageHandler(messageBatch[0]);
                     else
-                        this.SendMessageBatch(messageBatch);
+                        this.SendMessageBatchHandler(messageBatch);
                     profiler.MessageTransmissionCompleted();
 
                     // waits to achieve desired target rate

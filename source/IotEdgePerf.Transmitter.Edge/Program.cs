@@ -4,6 +4,8 @@ namespace IotEdgePerf.Transmitter.Edge
     using System.Threading.Tasks;
     using System.Text;
 
+    using System.Collections.Generic;
+
     using Newtonsoft.Json;
 
     using Microsoft.Azure.Devices.Client;
@@ -125,8 +127,8 @@ namespace IotEdgePerf.Transmitter.Edge
             _transmitter = new TransmitterLogic();
 
             // events handlers
-            _transmitter.SendMessage += OnSendMessage;
-            _transmitter.SendMessageBatch += null;
+            _transmitter.SendMessageHandler += SdkSendMessage;
+            _transmitter.SendMessageBatchHandler += null;
 
             // direct methods handler
             await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
@@ -152,10 +154,22 @@ namespace IotEdgePerf.Transmitter.Edge
             return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
         }
 
-        private static void OnSendMessage(string message)
+        private static void SdkSendMessage(string message)
         {
             Message azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
             _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage).Wait();
+        }
+
+        private static void SdkSendMessageBatch(string[] messageBatch)
+        {
+            List<Message> azIotMessageBatch = new List<Message>();
+
+            foreach (var message in messageBatch)
+            {
+                azIotMessageBatch.Add(new Message(Encoding.ASCII.GetBytes(message)));
+            }
+
+            _ioTHubModuleClient.SendEventBatchAsync(_moduleOutput, azIotMessageBatch).Wait();
         }
     }
 }
