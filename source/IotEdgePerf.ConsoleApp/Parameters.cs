@@ -3,7 +3,7 @@
 
 using System;
 using CommandLine;
-using IotEdgePerf.Shared;
+using IotEdgePerf.Transmitter.ConfigData;
 
 namespace IotEdgePerf.ConsoleApp
 {

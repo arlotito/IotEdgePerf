@@ -1,18 +1,24 @@
-namespace transmitter
+namespace IotEdgePerf.Transmitter.Edge
 {
     using System;
     using System.Threading.Tasks;
+    using System.Text;
+
+    using System.Collections.Generic;
+
+    using Newtonsoft.Json;
+
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Shared; // For TwinCollection
-    using Newtonsoft.Json;
-
+    
     using Serilog;
     using Serilog.Core;
-
-    using IotEdgePerf.Transmitter;
     using Serilog.Events;
 
+    using IotEdgePerf.Transmitter;
+    using IotEdgePerf.Transmitter.Commands;
+    
     class Program
     {
         static ModuleClient _ioTHubModuleClient;
@@ -22,7 +28,7 @@ namespace transmitter
         static string _iotHubHostname = Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME");
         static LoggingLevelSwitch _logLevelSwitch = new LoggingLevelSwitch();
 
-        static Transmitter _transmitter;
+        static TransmitterLogic _transmitter;
         
         static TwinCollection _twin;
 
@@ -53,7 +59,7 @@ namespace transmitter
             }
         }
         
-        async static Task Main(string[] args)
+        static void Main(string[] args)
         {
             GetLogLevelFromEnv();
 
@@ -64,15 +70,10 @@ namespace transmitter
                 .CreateLogger();
             
             Init().Wait();
-
-            await _transmitter.RegisterDM();
-
-            // applies initial configuration from twins
-            _transmitter.ApplyConfiguration(TransmitterConfig.GetFromTwin(_twin));
             
             while (true)
             {
-                await _transmitter.SendMessagesAsync();
+                _transmitter.Send();
             }
         }
 
@@ -100,8 +101,6 @@ namespace transmitter
             return Task.CompletedTask;
         }
 
-        
-
         /// <summary>
         /// Initializes the ModuleClient and sets up the callback to receive
         /// messages containing temperature information
@@ -124,8 +123,84 @@ namespace transmitter
             Log.Information($"Device id: '{_deviceId}'");
             Log.Information($"IoT HUB: '{_iotHubHostname}'");
 
-            // 
-            _transmitter = new Transmitter(_ioTHubModuleClient, _moduleOutput);
+            // creat an instance
+            _transmitter = new TransmitterLogic();
+
+            // events handlers
+            _transmitter.SendMessageHandler         += SdkSendMessage;
+            _transmitter.SendMessageBatchHandler    += null;
+            _transmitter.CreateMessageHandler       += CreateMessage;
+
+            // direct methods handler
+            await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
+
+            // applies initial configuration from twins
+            _transmitter.ApplyConfiguration(TransmitterConfig.GetFromTwin(_twin));
+        }
+
+        private static Task<MethodResponse> OnStartDm(MethodRequest methodRequest, object userContext)
+        {
+            TransmitterLogic transmitter = (TransmitterLogic)userContext;
+            
+            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
+            Log.Debug($"{methodRequest.DataAsJson}");
+
+            var request = JsonConvert.DeserializeObject<TransmitterStartCommand>(methodRequest.DataAsJson);
+
+            transmitter.ApplyConfiguration(request.config);
+            transmitter.Start(request.runId);
+            
+            // Acknowlege the direct method call with a 200 success message
+            string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
+            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
+        }
+
+        private static void SdkSendMessage(string message)
+        {
+            Message azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
+            _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage).Wait();
+        }
+
+        private static void SdkSendMessageBatch(string[] messageBatch)
+        {
+            List<Message> azIotMessageBatch = new List<Message>();
+
+            foreach (var message in messageBatch)
+            {
+                azIotMessageBatch.Add(new Message(Encoding.ASCII.GetBytes(message)));
+            }
+
+            _ioTHubModuleClient.SendEventBatchAsync(_moduleOutput, azIotMessageBatch).Wait();
+        }
+
+        private static object CreateMessage(int length)
+        {
+            var applicationObject = new
+            {
+                payload = RandomString(length)
+            };
+
+            return applicationObject;
+        }
+
+        /// <summary>
+        /// Creates a string of specified length with random chars 
+        /// (from "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") 
+        /// </summary>
+        /// <param name="length">Number of chars</param>
+        /// <returns>the string</returns>
+        private static String RandomString(int length)
+        {
+            var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            var stringChars = new char[length];
+            var random = new Random();
+
+            for (int i = 0; i < length; i++)
+            {
+                stringChars[i] = chars[random.Next(chars.Length)];
+            }
+
+            return new String(stringChars);
         }
     }
 }

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>Program</RootNamespace>
+    <RootNamespace>IotEdgePerf.Transmitter.Edge</RootNamespace>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
@@ -29,6 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\**" />
+    <Compile Include="..\IotEdgePerf.Shared\*.cs" />
+    <Compile Include="..\IotEdgePerf.Transmitter\*.cs" />
+    <Compile Include="..\IotEdgePerf.Profiler\*.cs" />
   </ItemGroup>
 </Project>

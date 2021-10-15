@@ -9,11 +9,11 @@ Useful for:
 
 The framework includes:
 
-* a [transmitter module](./source/Transmitter/README.md) (1), to generate traffic 
+* a [transmitter module](source/IotEdgePerf.Transmitter.Edge/) (1), to generate traffic 
   (arlotito/iotedgeperf-transmitter [![for easy](https://img.shields.io/docker/v/arlotito/iotedgeperf-transmitter)](https://hub.docker.com/repository/docker/arlotito/iotedgeperf-transmitter))
-* a Profiler class (2), ...
+* an [IotEdgePer.Profiler](source/IotEdgePerf.Profiler/) class (2), ...
 * an [ASA query](./asa/) (3), to measure the ingestion latency and rate
-* the [iotEdgePerf](./source/IotEdgePerf) (4) CLI app, to control the transmitter, to analyze the data produced by the ASA job and show the results
+* the [IotEdgePer.ConsoleApp](source/IotEdgePerf.ConsoleApp/) (4) CLI app, to control the transmitter, to analyze the data produced by the ASA job and show the results
 
 An example:
 ```bash
@@ -52,7 +52,7 @@ export EH_CONN_STRING="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKey
 
 Deploy the transmitter module:
 ```bash
-./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200 arlotito/iotedgeperf-transmitter:0.4.4
+./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200 arlotito/iotedgeperf-transmitter:0.5.0
 ```
 That sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. Change it to fit your needs.
 

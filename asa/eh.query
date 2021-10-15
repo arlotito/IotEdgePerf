@@ -5,14 +5,15 @@ stage1 as
         IoTHub.EnqueuedTime AS IoTHubEnqueuedTime,
         EventEnqueuedUtcTime AS ASAEnqueuedTime,
         IoTHub.ConnectionDeviceId as device_id,
-        iotEdgePerf.sessionId as sessionId,
-        iotEdgePerf.sessionTimeElapsedMilliseconds as sessionTimeElapsedMilliseconds,
-        iotEdgePerf.sessionRollingRate as sessionRollingRate,
-        iotEdgePerf.messageSequenceNumberInSession as messageSequenceNumberInSession,
-        iotEdgePerf.previousTransmissionDurationMilliseconds as previousTransmissionDurationMilliseconds,
-        iotEdgePerf.previousMessageCycleDurationMilliseconds as previousMessageCycleDurationMilliseconds,
-        iotEdgePerf.timingViolationsCounter AS timingViolationsCounter,
-        iotEdgePerf.messageTimestampMilliseconds AS device_epoch,
+        p.id as sessionId,
+        p.bc as burstCounter,
+        p.el as sessionTimeElapsedMilliseconds,
+        p.rt as sessionRollingRate,
+        p.mc as messageSequenceNumberInSession,
+        p.pt as previousTransmissionDurationMilliseconds,
+        p.pc as previousMessageCycleDurationMilliseconds,
+        p.vc AS timingViolationsCounter,
+        p.ts AS device_epoch,
         DATEDIFF(millisecond, '1970-01-01T00:00:00Z', CAST(IoTHub.EnqueuedTime AS DATETIME)) AS iothub_epoch,
         DATEDIFF(millisecond, '1970-01-01T00:00:00Z', CAST(EventEnqueuedUtcTime AS DATETIME)) AS asa_epoch
     FROM hub 
@@ -22,6 +23,7 @@ stage2 as
     SELECT
         device_id,
         sessionId,
+        burstCounter,
         sessionTimeElapsedMilliseconds,
         sessionRollingRate,
         messageSequenceNumberInSession,
@@ -40,6 +42,7 @@ stage3 as
     SELECT
         System.Timestamp() t,
         sessionId,
+        burstCounter,
         
         MAX(sessionTimeElapsedMilliseconds) AS sessionTimeElapsedMilliseconds,
 
@@ -74,12 +77,13 @@ stage3 as
         MAX(hubToAsaLatency) AS maxHubToAsaLatency 
     FROM
         stage2
-    GROUP BY sessionId, TumblingWindow(second, 5)
+    GROUP BY sessionId, burstCounter, TumblingWindow(second, 5)
 )
 
 SELECT
     System.Timestamp() t,
     sessionId,
+    burstCounter,
     sessionTimeElapsedMilliseconds,
     firstMessageEpoch,
     lastMessageEpoch,

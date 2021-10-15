@@ -5,6 +5,7 @@ namespace IotEdgePerf.Shared
         // timestamp of the 5s bucket
         public string t;
         public string sessionId;
+        public double burstCounter;
         public double sessionTimeElapsedMilliseconds;
         public double firstMessageEpoch;
         public double lastMessageEpoch;

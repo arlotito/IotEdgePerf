@@ -15,7 +15,7 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-agent:1.2.4",
+                "image": "mcr.microsoft.com/azureiotedge-agent:1.2",
               "createOptions": "{}"
             }
           },
@@ -24,7 +24,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-hub:1.2.4",
+                "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/iotedge:/tmp/edgeHub\"]}}"
             },
             "env": {
@@ -34,9 +34,7 @@
               "storageFolder": {
                 "value": "/iotedge"
               },
-              "RuntimeLogLevel": {
-                "value": "info"
-              }
+              "RuntimeLogLevel": {"value": "$EdgeHubRuntimeLogLevel"}
             }
           }
         },
@@ -51,7 +49,7 @@
               "createOptions": "{}"
             },
             "env": {
-              "LOG_LEVEL": {"value": "info"}
+              "LOG_LEVEL": {"value": "$TransmitterRuntimeLogLevel"}
             }
           }
         }
@@ -61,7 +59,7 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {
-          "sourceToHub": "FROM /messages/modules/source/outputs/* INTO $upstream"
+            "upstream": "FROM /messages/* INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200

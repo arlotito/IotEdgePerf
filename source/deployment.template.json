@@ -31,9 +31,19 @@
               "restartPolicy": "always",
               "settings": {
                 "image": "mcr.microsoft.com/azureiotedge-hub:1.2",
-                "createOptions": "{}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/iotedge:/tmp/edgeHub\"]}}"
+            },
+            "env": {
+              "MaxUpstreamBatchSize": {
+                "value": "$MaxUpstreamBatchSize"
               },
-              "env": {}
+              "storageFolder": {
+                "value": "/iotedge"
+              },
+              "RuntimeLogLevel": {
+                "value": "info"
+              }
+            }
             }
           },
           "modules": {
@@ -46,7 +56,9 @@
                 "image": "${MODULES.Transmitter}",
                 "createOptions": "{}"
               },
-              "env": {}
+            "env": {
+              "LOG_LEVEL": {"value": "info"}
+            }
             }
           }
         }

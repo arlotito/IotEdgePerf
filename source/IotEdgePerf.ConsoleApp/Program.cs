@@ -12,6 +12,7 @@ using Azure.Messaging.EventHubs.Consumer;
 using IotEdgePerf.Service;
 using IotEdgePerf.Shared;
 using IotEdgePerf.Analysis;
+using IotEdgePerf.Transmitter.ConfigData;
 
 namespace IotEdgePerf.ConsoleApp
 {
@@ -33,7 +34,7 @@ namespace IotEdgePerf.ConsoleApp
 
         private static IotEdgePerfService _iotEdgePerfService;
         private static TransmitterConfigData _transmitterConfigData;
-        private static Analyzer _analyzer;
+        private static BurstAnalyzer _analyzer;
 
         private static string _csvFile;
         private static string _customLabel;
@@ -72,7 +73,7 @@ namespace IotEdgePerf.ConsoleApp
             }
 
             // HostName=arturol76-s1-benchmark.a
-            _analyzer = new Analyzer(
+            _analyzer = new BurstAnalyzer(
                 _iotHubConnectionString.Split('.')[0].Replace("HostName=", ""),
                 _deviceId,
                 _transmitterConfigData,
@@ -125,8 +126,8 @@ namespace IotEdgePerf.ConsoleApp
 
             Console.WriteLine("");
 
-            int expectedMessageCount = _transmitterConfigData.burstLength * _transmitterConfigData.burstNumber;
-
+            int expectedMessageCount = _transmitterConfigData.burstLength * _transmitterConfigData.burstNumber * _transmitterConfigData.burstNumber;
+            
             try
             {
                 //Console.WriteLine("timestamp,counter,total,messagesCount,asaEstimatedRate,asaAvgLatency,asaMinLatency,asaMaxLatency,statsAvgRate,statsMinRate,statsMaxRate");
@@ -153,7 +154,7 @@ namespace IotEdgePerf.ConsoleApp
                                 _timeout.Start();
 
                                 // add for analysis
-                                double count = _analyzer.Add(msg);
+                                double count = _analyzer.AddMessage(msg);
 
                                 if (_showMsg)
                                     Console.WriteLine($"Received: {line}");
@@ -166,7 +167,7 @@ namespace IotEdgePerf.ConsoleApp
 
                                 if (count == expectedMessageCount)
                                 {
-                                    Console.WriteLine("\nAll expected messages has been received. Completed.\n \n");
+                                    Console.WriteLine("\nAll expected messages have been received. Completed.\n \n");
                                     _analyzer.DoAnalysis();
                                     return;
                                 }

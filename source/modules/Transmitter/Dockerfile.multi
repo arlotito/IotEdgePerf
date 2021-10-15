@@ -2,10 +2,10 @@ FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build-env
 WORKDIR /app
 
 COPY . ./
-RUN dotnet restore source/Transmitter/*.csproj
+RUN dotnet restore source/IotEdgePerf.Transmitter.Edge/*.csproj
 # Set UseAppHost=false to avoid creating a rid specific executable.
 # Without this, the executable would be linux-amd64 specific.
-RUN dotnet publish source/Transmitter/*.csproj -c Release -o out /p:UseAppHost=false
+RUN dotnet publish source/IotEdgePerf.Transmitter.Edge/*.csproj -c Release -o out /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1
 WORKDIR /app
@@ -18,4 +18,4 @@ RUN chmod 777 /usr/local/cache
 RUN useradd -ms /bin/bash moduleuser
 USER moduleuser
 
-ENTRYPOINT ["dotnet", "Transmitter.dll"]
+ENTRYPOINT ["dotnet", "Transmitter.Edge.dll"]
