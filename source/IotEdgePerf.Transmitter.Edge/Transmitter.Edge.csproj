@@ -31,5 +31,6 @@
   <ItemGroup>
     <Compile Include="..\IotEdgePerf.Shared\**" />
     <Compile Include="..\IotEdgePerf.Transmitter\**" />
+    <Compile Include="..\IotEdgePerf.Profiler\**" />
   </ItemGroup>
 </Project>

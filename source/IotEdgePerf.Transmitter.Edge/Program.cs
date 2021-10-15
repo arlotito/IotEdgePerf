@@ -17,7 +17,7 @@ namespace IotEdgePerf.Transmitter.Edge
     using Serilog.Events;
 
     using IotEdgePerf.Transmitter;
-    using IotEdgePerf.Shared;
+    using IotEdgePerf.Transmitter.Commands;
     
     class Program
     {
@@ -127,8 +127,9 @@ namespace IotEdgePerf.Transmitter.Edge
             _transmitter = new TransmitterLogic();
 
             // events handlers
-            _transmitter.SendMessageHandler += SdkSendMessage;
-            _transmitter.SendMessageBatchHandler += null;
+            _transmitter.SendMessageHandler         += SdkSendMessage;
+            _transmitter.SendMessageBatchHandler    += null;
+            _transmitter.CreateMessageHandler       += CreateMessage;
 
             // direct methods handler
             await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
@@ -144,7 +145,7 @@ namespace IotEdgePerf.Transmitter.Edge
             Log.Information($"Direct Method '{methodRequest.Name}' was called.");
             Log.Debug($"{methodRequest.DataAsJson}");
 
-            var request = JsonConvert.DeserializeObject<TransmitterStartDmPayload>(methodRequest.DataAsJson);
+            var request = JsonConvert.DeserializeObject<TransmitterStartCommand>(methodRequest.DataAsJson);
 
             transmitter.ApplyConfiguration(request.config);
             transmitter.Start(request.runId);
@@ -170,6 +171,36 @@ namespace IotEdgePerf.Transmitter.Edge
             }
 
             _ioTHubModuleClient.SendEventBatchAsync(_moduleOutput, azIotMessageBatch).Wait();
+        }
+
+        private static object CreateMessage(int length)
+        {
+            var applicationObject = new
+            {
+                payload = RandomString(length)
+            };
+
+            return applicationObject;
+        }
+
+        /// <summary>
+        /// Creates a string of specified length with random chars 
+        /// (from "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") 
+        /// </summary>
+        /// <param name="length">Number of chars</param>
+        /// <returns>the string</returns>
+        private static String RandomString(int length)
+        {
+            var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            var stringChars = new char[length];
+            var random = new Random();
+
+            for (int i = 0; i < length; i++)
+            {
+                stringChars[i] = chars[random.Next(chars.Length)];
+            }
+
+            return new String(stringChars);
         }
     }
 }

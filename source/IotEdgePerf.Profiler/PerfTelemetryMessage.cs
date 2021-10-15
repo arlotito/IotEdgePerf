@@ -1,4 +1,4 @@
-namespace IotEdgePerf.Shared
+namespace IotEdgePerf.Profiler
 {
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;

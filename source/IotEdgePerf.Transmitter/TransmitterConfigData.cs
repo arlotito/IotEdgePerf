@@ -1,4 +1,4 @@
-namespace IotEdgePerf.Shared
+namespace IotEdgePerf.Transmitter.ConfigData
 {
     public class TransmitterConfigData
     {

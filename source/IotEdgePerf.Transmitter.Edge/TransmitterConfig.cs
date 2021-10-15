@@ -3,7 +3,7 @@ namespace IotEdgePerf.Transmitter.Edge
     using System;
     using Microsoft.Azure.Devices.Shared; // For TwinCollection
     using Newtonsoft.Json;
-    using IotEdgePerf.Shared;
+    using IotEdgePerf.Transmitter.ConfigData;
     using Serilog;
     
     public static class TransmitterConfig

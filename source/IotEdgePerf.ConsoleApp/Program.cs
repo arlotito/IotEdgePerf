@@ -12,6 +12,7 @@ using Azure.Messaging.EventHubs.Consumer;
 using IotEdgePerf.Service;
 using IotEdgePerf.Shared;
 using IotEdgePerf.Analysis;
+using IotEdgePerf.Transmitter.ConfigData;
 
 namespace IotEdgePerf.ConsoleApp
 {

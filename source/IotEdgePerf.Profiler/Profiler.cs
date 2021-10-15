@@ -2,11 +2,7 @@
 namespace IotEdgePerf.Profiler
 {
     using System;
-    using System.Threading;
     using System.Diagnostics;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
-    using IotEdgePerf.Shared;
     using Serilog;
 
     public class Profiler

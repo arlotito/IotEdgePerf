@@ -1,11 +1,10 @@
 namespace IotEdgePerf.Service
 {
     using System;
-    using Microsoft.Azure.Devices.Shared; // For TwinCollection
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices;
     using System.Threading.Tasks;
-    using IotEdgePerf.Shared;
+    using IotEdgePerf.Transmitter.ConfigData;
     
     public class IotEdgePerfService
     {

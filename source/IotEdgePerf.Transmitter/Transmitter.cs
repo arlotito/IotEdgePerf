@@ -13,32 +13,23 @@ namespace IotEdgePerf.Transmitter
 
     using IotEdgePerf.Shared;
     using IotEdgePerf.Profiler;
+    using IotEdgePerf.Transmitter.ConfigData;
 
     public delegate void SendMessageEvent(string message);
     public delegate void SendMessageBatchEvent(List<string> messageBatch);
+    public delegate object CreateMessage(int length);
 
     public partial class TransmitterLogic
     {
-        public event SendMessageEvent SendMessageHandler; // event
+        public event SendMessageEvent SendMessageHandler; 
         public event SendMessageBatchEvent SendMessageBatchHandler;
+        public event CreateMessage CreateMessageHandler;
 
         TransmitterConfigData _config;
 
         Guid _sessionId;
 
         readonly AtomicBoolean _resetRequest = new AtomicBoolean(false);
-
-        protected virtual void OnSendMessage(string message) //protected virtual method
-        {
-            //if ProcessCompleted is not null then call delegate
-            SendMessageHandler?.Invoke(message); 
-        }
-
-        protected virtual void OnSendMessageBatch(List<string> messageBatch, string output) //protected virtual method
-        {
-            //if ProcessCompleted is not null then call delegate
-            SendMessageBatchHandler?.Invoke(messageBatch); 
-        }
 
         public TransmitterLogic()
         {
@@ -58,37 +49,21 @@ namespace IotEdgePerf.Transmitter
             Log.Information("New configuration applied:\n{0}", JsonConvert.SerializeObject(this._config, Formatting.Indented));
         }
 
-        /// <summary>
-        /// Creates a string of specified length with random chars 
-        /// (from "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") 
-        /// </summary>
-        /// <param name="length">Number of chars</param>
-        /// <returns>the string</returns>
-        String RandomString(int length)
-        {
-            var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            var stringChars = new char[length];
-            var random = new Random();
-
-            for (int i = 0; i < length; i++)
-            {
-                stringChars[i] = chars[random.Next(chars.Length)];
-            }
-
-            return new String(stringChars);
-        }
-
         public void Send()
         {
             double cyclePeriodMilliseconds;
 
-            if (!this._config.enable) 
-                return; // do nothing
+            if (!this._config.enable)
+            {
+                // transmitter is disabled. Nothing to do.
+                return; 
+            }
 
-            // clears the resetRequest flag if raised
+            // clear the resetRequest flag
+            // (the resetRequest flag is used to stop a transmission if in progress)
             if (this._resetRequest)
             {
-                Log.Information("reset executed.");
+                Log.Information("reset request received. nothing to do.");
                 this._resetRequest.Set(false);
             }
 
@@ -97,55 +72,55 @@ namespace IotEdgePerf.Transmitter
             Thread.Sleep(this._config.waitBeforeStart);
             Log.Information($"transmission started.");
 
-            // 
-            Log.Information($"Run ID: {_sessionId}");
-
-            // calculates time period
+            // calculates the cycle time period to achieve desired target rate
             if (this._config.targetRate > 0)
                 cyclePeriodMilliseconds = 1 / (double)this._config.targetRate * 1000;
             else
                 cyclePeriodMilliseconds = 0;
             Log.Information($"(calculated) cycle period [ms]: {cyclePeriodMilliseconds}");
 
+            // let's start the transmission
+            Log.Information($"Session ID: {_sessionId}");
             var profiler = new Profiler(_sessionId);
 
+            // BURST loop (in a session we have 'this._config.burstNumber' bursts)
             for (int burstIndex = 0; burstIndex < this._config.burstNumber; burstIndex++)
             {
                 profiler.BurstStart();
 
                 Log.Debug("Burst index: {0}", burstIndex);
 
+                // MESSAGE loop (in a burst we have 'this._config.burstLength' messages)
                 for (int messageIndex = 0; messageIndex < this._config.burstLength; messageIndex++)
                 {
                     profiler.MessageCycleStart();
 
                     Log.Debug("Message index: {0}", messageIndex);
 
-                    // checks if a reset has been requested
-
+                    // stops in case a reset was requested
                     if (_resetRequest)
                     {
                         Log.Information("reset request received. stops transmission.");
-                        return; // not complete
+                        this._resetRequest.Set(false); //clears the request
+                        return; 
                     }
 
-                    var messageBatch = new List<string>();
-
+                    
                     // create single message or batch of messages
+                    var messageBatch = new List<string>();
                     for (int k = 0; k < this._config.batchSize; k++)
                     {
                         // gets profiling data
                         PerfTelemetryMessage perfMessage = profiler.GetProfilingTelemetry();
                         Log.Debug("perfMessage: \n{0}", perfMessage.Json);
 
-                        // create an application payload. The resulting length must be equal to 'this._config.payloadLength'
-                        int minimumLength = (perfMessage.Json.Length + perfMessage.KeyName.Length + 3) + 15; //{"p":<perfMessage>,"payload":"<randomString>"}
-                        int delta = (this._config.payloadLength > minimumLength) ? (this._config.payloadLength - minimumLength) : 0;
-                        var applicationObject = new
-                        {
-                            payload = RandomString(delta)
-                        };
-                        
+                        // requests for an application payload by raising the 'CreateMessageHandler' event
+                        //The resulting length must be equal to 'this._config.payloadLength'
+                        //                                                     {"      - p -                    ": - <perfMessage> -          , - <object> }
+                        int deltaPayloadLength = this._config.payloadLength - (2 + perfMessage.KeyName.Length + 2 + perfMessage.Json.Length + 1 + 1); 
+                        object applicationObject = this.CreateMessageHandler?.Invoke(deltaPayloadLength > 0 ? deltaPayloadLength : 0);
+
+                        // adds the profiling telemetry data to the application message
                         string mergedMessageJson = perfMessage.AddTo(applicationObject);
                         Log.Debug("mergedMessage length: {0}", mergedMessageJson.Length);
 
@@ -156,9 +131,9 @@ namespace IotEdgePerf.Transmitter
                     // sends the message
                     profiler.MessageTransmissionStart();
                     if (messageBatch.Count == 1)
-                        this.SendMessageHandler(messageBatch[0]);
+                        this.SendMessageHandler?.Invoke(messageBatch[0]);
                     else
-                        this.SendMessageBatchHandler(messageBatch);
+                        this.SendMessageBatchHandler?.Invoke(messageBatch);
                     profiler.MessageTransmissionCompleted();
 
                     // waits to achieve desired target rate
