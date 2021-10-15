@@ -52,7 +52,7 @@ export EH_CONN_STRING="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKey
 
 Deploy the transmitter module:
 ```bash
-./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200 arlotito/iotedgeperf-transmitter:0.4.4
+./deploy-transmitter.sh $IOT_HUB_NAME $DEVICE_ID 200 arlotito/iotedgeperf-transmitter:0.5.0
 ```
 That sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. Change it to fit your needs.
 
