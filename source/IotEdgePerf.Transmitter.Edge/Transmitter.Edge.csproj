@@ -29,8 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\IotEdgePerf.Shared\**" />
-    <Compile Include="..\IotEdgePerf.Transmitter\**" />
-    <Compile Include="..\IotEdgePerf.Profiler\**" />
+    <Compile Include="..\IotEdgePerf.Shared\*.cs" />
+    <Compile Include="..\IotEdgePerf.Transmitter\*.cs" />
+    <Compile Include="..\IotEdgePerf.Profiler\*.cs" />
   </ItemGroup>
 </Project>
