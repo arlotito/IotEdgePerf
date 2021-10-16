@@ -51,6 +51,36 @@
             "env": {
               "LOG_LEVEL": {"value": "$TransmitterRuntimeLogLevel"}
             }
+          },
+          "IoTEdgeMetricsCollector": {
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-metrics-collector:1.0",
+              "createOptions": ""
+            },
+            "type": "docker",
+            "env": {
+              "ResourceId": {
+                "value": "$LOG_ANALYTICS_RESOURCE_ID"
+              },
+              "UploadTarget": {
+                "value": "AzureMonitor"
+              },
+              "LogAnalyticsWorkspaceId": {
+                "value": "$LOG_ANALYTICS_WORKSPACE_ID"
+              },
+              "LogAnalyticsSharedKey": {
+                "value": "$LOG_ANALYTICS_SHARED_KEY"
+              },
+              "ScrapeFrequencyInSecs": {
+                "value": "$METRICS_COLLECTOR_FREQUENCY"
+              },
+              "MetricsEndpointsCSV": {
+                "value": "http://edgeAgent:9600/metrics, http://edgeHub:9600/metrics"
+              }
+            },
+            "status": "running",
+            "restartPolicy": "always",
+            "version": "1.0"
           }
         }
       }
