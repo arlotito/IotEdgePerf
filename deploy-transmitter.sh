@@ -1,26 +1,109 @@
 #!/bin/bash
-# example: ./deploy-transmitter.sh arturol76-s1-benchmark standard-ds3-v2-edge-1-2-1631626847 200 arlotito/iotedgeperf-transmitter:0.4.4
+showHelp() {
+# `cat << EOF` This means that cat should stop reading when EOF is detected
+cat << EOF  
+Usage: ./deploy-transmitter.sh
+  -n  <iot-hub-hostname>        IoT HUB hostname
+  -d  <device-name>             iot edge device name
+  -b  <size>                    (optional) this value will be assigned to edgeHub's MaxUpstreamBatchSize env var.
+                                If provided, it will override the env variable $MaxUpstreamBatchSize
+  -i  <image-uri:tag>           image URI with
+  -e  <.env file>               (optional) default is "./source/.env"
+  -m                            (optional) deploys the metrics-collector
+  
+Examples:
 
-HUB_NAME=$1
-DEVICE_NAME=$2
-deploymentManifestTemplate="./manifests/deployment.template.json"
+deploy transmitter only:
+    ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 
+
+deploy transmitter and metrics-collector:
+    ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -m
+
+deploy transmitter and set MaxUpstreamBatchSize=200:
+    ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200
+
+Prerequisites:
+    - az cli with iot extension (https://github.com/Azure/azure-iot-cli-extension)
+
+Note:
+This script uses the azure CLI with the IoT extension.
+If not already signed-in, do 'az login' and select the tenant/subscription where you want to operate on.
+EOF
+}
+
+# default values
+EnvFile="./source/.env"
+MetricsCollector="false"
+
+while getopts "hmn:d:b:i:m:e:" args; do
+    case "${args}" in
+        h ) showHelp;;
+        n ) HUB_NAME="${OPTARG}";;
+        d ) DEVICE_NAME="${OPTARG}";;
+        b ) MaxUpstreamBatchSizeArg="${OPTARG}";;
+        i ) TRANSMITTER_IMAGE_URI="${OPTARG}";;
+        e ) EnvFile="${OPTARG}";;
+        m ) MetricsCollector="true";;
+        \? ) echo "Unknown option: -$OPTARG" >&2; echo; showHelp; exit 1;;
+        :  ) echo "Missing option argument for -$OPTARG" >&2; echo; showHelp; exit 1;;
+        *  ) echo "Unimplemented option: -$OPTARG" >&2; echo; showHelp; exit 1;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ ! "$HUB_NAME" ] || [ ! "$DEVICE_NAME" ] || [ ! "$TRANSMITTER_IMAGE_URI" ];
+then
+    echo -e "ERROR: a required parameter is missing."
+    echo "Please see help: $0 -h"
+    exit 1
+fi
+
+echo
+echo "Settings:"
+echo "transmitter image uri:    $TRANSMITTER_IMAGE_URI"
+echo "IoT HUB name:             $HUB_NAME"
+echo "Device name:              $DEVICE_NAME"
+echo "deploy metrics-collector: $MetricsCollector"
+echo ".env file:                $EnvFile"
+echo
+
+
+# selects deployment manifest with/without metrics collector depending on MetricsCollector flag
+if [ "$MetricsCollector" = "true" ]
+then
+    deploymentManifestTemplate="./manifests/deployment.metrics-collector.template.json"
+else
+    deploymentManifestTemplate="./manifests/deployment.template.json"
+fi
 deploymentManifest="./manifests/deployment.json"
 
-# az login
+# exports variables from .env
+if [[ ! -f $EnvFile ]]
+then
+    echo "$EnvFile not found. We need it"
+    exit 1
+fi
+cat $EnvFile
+source $EnvFile
+export $(cut -d= -f1 $EnvFile)
 
-#build=$(cat ./source/BUILD)
-
+# do not touch
 export upstream='$upstream'
 export edgeAgent='$edgeAgent'
 export edgeHub='$edgeHub'
-export MaxUpstreamBatchSize="${3}"
-export EdgeHubRuntimeLogLevel="info"
-export TransmitterRuntimeLogLevel="info"
-export IMAGE="$4"
+export TRANSMITTER_IMAGE_URI=$TRANSMITTER_IMAGE_URI
+
+# override
+if [[ "$MaxUpstreamBatchSizeArg" ]]
+then
+    export MaxUpstreamBatchSize=$MaxUpstreamBatchSizeArg
+fi
+
+
+# do the env vars expansion
 cat $deploymentManifestTemplate | envsubst > $deploymentManifest
 
-echo "MaxUpstreamBatchSize=$MaxUpstreamBatchSize"
-echo "image: $IMAGE"
+# do the deployment
 echo "deploying manifest '$deploymentManifest'..."
 result=$(az iot edge set-modules \
     -n $HUB_NAME \
