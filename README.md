@@ -98,7 +98,7 @@ dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
 And here's the result:
 ![](./images/example-10Kmsg-1Krate.png)
 
-Some parameters can be passed over with ENV variables:
+To make the command line command shorter, some parameters can laso be passed over via ENV variables:
 ```bash
 export DEVICE_ID=__redacted__
 export EH_NAME=__redacted__
@@ -106,7 +106,7 @@ export EH_CONN_STRING=__redacted__
 export IOT_CONN_STRING=__redacted__
 export IOT_HUB_NAME=__redacted__
 ```
-and the run with:
+and then run with:
 ```bash
 dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
   --device-id="myEdgeDevice" \
