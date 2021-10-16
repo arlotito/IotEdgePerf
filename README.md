@@ -41,32 +41,25 @@ du -hd1 /iotedge
 ```
 
 ## Execute the tests
-On the DEV machine (change to match yours):
-```bash
-export IOT_HUB_NAME="my-iot-hub"
-export DEVICE_ID="edge-device-id"
-export IOT_CONN_STRING="HostName=xxx;SharedAccessKeyName=service;SharedAccessKey=xxx"
-export EH_NAME="iotedgeperf"
-export EH_CONN_STRING="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxx"
-```
 
 ### Deploy the transmitter module
+Create "./source/.env" from "./source/.env.sample" and edit it.
+
+Then deploy with:
 ```bash
-./deploy-transmitter.sh \
-  -n myIotHub \                               
-  -d myEdgeDevice \                           
-  -i arlotito/iotedgeperf-transmitter:0.5.0 \ 
-  -b 200                                       
+./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200                                       
 ```
 The parameter "-b 200" sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. Change it to fit your needs.
 
-Add the flag "-m" to deploy teh metrics-collector as well. 
-See the help of deploy-transmitter.sh with "-h"
-
+Add the flag "-m" to deploy the metrics-collector. 
+See the help of deploy-transmitter.sh with "-h".
 
 ### Run the tests
 ```bash
 dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
+  --ehName="myEventHubName" \
+  --eh-conn-string="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxx" \
+  --iot-conn-string="HostName=xxx;SharedAccessKeyName=service;SharedAccessKey=xxx" \
   --device-id="myEdgeDevice" \
   --payload-length=1024 \
   --burst-length=10000 \
@@ -76,6 +69,25 @@ dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
 
 And here's the result:
 ![](./images/example-10Kmsg-1Krate.png)
+
+Some parameters can be passed over with ENV variables:
+```bash
+export DEVICE_ID=__redacted__
+export EH_NAME=__redacted__
+export EH_CONN_STRING=__redacted__
+export IOT_CONN_STRING=__redacted__
+export IOT_HUB_NAME=__redacted__
+```
+and the run with:
+```bash
+dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
+  --device-id="myEdgeDevice" \
+  --payload-length=1024 \
+  --burst-length=10000 \
+  --target-rate=2000 \
+  -o test.csv
+```
+
 
 ## Optionally build the iotEdgePerf tool
 On the DEV machine, build the iotEdgePerfTool as a self-contained binary:
