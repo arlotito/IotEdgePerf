@@ -52,7 +52,7 @@ TransmitterRuntimeLogLevel="info"
 EOF
 ```
 
-Then deploy it with:
+Then deploy the transmitter module:
 ```bash
 ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200                                       
 ```
@@ -75,7 +75,7 @@ TransmitterRuntimeLogLevel="info"
 EOF
 ```
 
-Then deploy it with:
+Then deploy the transmitter module and metrics collector:
 ```bash
 ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200 -m                                      
 ```
