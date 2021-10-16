@@ -110,7 +110,7 @@ namespace IotEdgePerf.ConsoleApp
             'o',
             "output-csv-file",
             Required = false,
-            Default = "test.csv",
+            Default = "",
             HelpText = "Output file for test results. CSV. If already existing, results will be appended.")]
         public string csvOutputFile { get; set; }
 
@@ -173,7 +173,7 @@ namespace IotEdgePerf.ConsoleApp
             }
 
             double.TryParse(_parameters.Timeout, out _timeoutInterval);
-            _showMsg = _parameters.ShowMsg;
+            _showAsaMessage = _parameters.ShowMsg;
             _csvFile = _parameters.csvOutputFile;
             _customLabel = _parameters.TestLabel;
             

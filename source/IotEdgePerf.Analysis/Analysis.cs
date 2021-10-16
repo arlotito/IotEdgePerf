@@ -147,6 +147,7 @@ namespace IotEdgePerf.Analysis
         string _csvFilename;
         string _customLabel;
         int _receivedMessageCount;
+        
  
         public BurstAnalyzer(
             string iotHubHostname,
@@ -160,30 +161,51 @@ namespace IotEdgePerf.Analysis
             this._deviceId = deviceId;
             this._iotHubHostname = iotHubHostname;
             this._receivedMessageCount = 0;
+            
         }
 
-        public int AddMessage(AsaMessage msg)
+        public int? AddMessage(AsaMessage msg, string sessionId)
         {
-            this._messagesList.Add(msg);
-            this._receivedMessageCount += (int)msg.asaMessageCount;
-
-            return this._receivedMessageCount;
+            bool add = true;
+            int? count = null;
+            
+            if (!String.IsNullOrEmpty(sessionId))
+            {
+                if (!msg.sessionId.Equals(sessionId))
+                {
+                    add = false;
+                }
+            }
+            
+            if (add)
+            {
+                this._messagesList.Add(msg);
+                this._receivedMessageCount += (int)msg.asaMessageCount;
+                count = this._receivedMessageCount;
+            }
+                        
+            return count;
         }
 
-        public void DoAnalysis()
+        public void DoAnalysis(string sessionId)
         {
             // order by asa timestamp
             _messagesList.OrderBy(msg => msg.t);
 
             // group by burstCounter
             var query = from item in _messagesList
+                        where item.sessionId == sessionId
                         group item by (item.sessionId, item.burstCounter) into sessionGroup
                         orderby sessionGroup.Key ascending
                         select sessionGroup;
+                        
 
             // if needed, creates file with header
-            if (!File.Exists(this._csvFilename))
-                File.AppendAllText(_csvFilename, new BurstAnalysisData().GetCsvHeader());
+            if (!String.IsNullOrEmpty(this._csvFilename))
+            {
+                if (!File.Exists(this._csvFilename))
+                    File.AppendAllText(_csvFilename, new BurstAnalysisData().GetCsvHeader());
+            }
 
             // perform analysis
             foreach (var sessionGroup in query)
@@ -260,7 +282,10 @@ namespace IotEdgePerf.Analysis
                 burstAnalysisData.Show();
 
                 // saves to CSV file
-                File.AppendAllText(_csvFilename, burstAnalysisData.ToCsvString());
+                if (!String.IsNullOrEmpty(this._csvFilename))
+                {
+                    File.AppendAllText(_csvFilename, burstAnalysisData.ToCsvString());
+                }
             }
 
 

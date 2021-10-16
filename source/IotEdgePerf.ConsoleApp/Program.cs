@@ -25,7 +25,7 @@ namespace IotEdgePerf.ConsoleApp
 
         private static System.Timers.Timer _timeout;
 
-        private static bool _showMsg = true;
+        private static bool _showAsaMessage = true;
 
 
 
@@ -36,11 +36,14 @@ namespace IotEdgePerf.ConsoleApp
         private static TransmitterConfigData _transmitterConfigData;
         private static BurstAnalyzer _analyzer;
 
+        private static Guid _sessionId;
         private static string _csvFile;
         private static string _customLabel;
 
         public static async Task Main(string[] args)
         {
+            _sessionId = Guid.NewGuid();
+
             GetConfig(args);
 
             // Set up a way for the user to gracefully shutdown
@@ -64,7 +67,8 @@ namespace IotEdgePerf.ConsoleApp
                 _iotEdgePerfService = new IotEdgePerfService(_iotHubConnectionString, _deviceId, "source");
 
                 // Apply config
-                await _iotEdgePerfService.Start(Guid.NewGuid(), _transmitterConfigData);
+                
+                await _iotEdgePerfService.Start(_sessionId, _transmitterConfigData);
             }
             else
             {
@@ -103,7 +107,7 @@ namespace IotEdgePerf.ConsoleApp
             Console.WriteLine("Analysis may be incomplete.");
             cts.Cancel();
 
-            _analyzer.DoAnalysis();
+            _analyzer.DoAnalysis(_sessionId.ToString());
             return;
 
         }
@@ -112,7 +116,9 @@ namespace IotEdgePerf.ConsoleApp
         // reading any messages sent from the simulated client.
         private static async Task ReceiveMessagesFromDeviceAsync(CancellationToken ct)
         {
-            DateTime discardBefore = DateTime.Now;
+            //DateTime discardBefore = DateTime.Now;
+
+            int discarded = 0;
 
             await using var consumer = new EventHubConsumerClient(
                     EventHubConsumerClient.DefaultConsumerGroupName,
@@ -132,7 +138,7 @@ namespace IotEdgePerf.ConsoleApp
             {
                 //Console.WriteLine("timestamp,counter,total,messagesCount,asaEstimatedRate,asaAvgLatency,asaMinLatency,asaMaxLatency,statsAvgRate,statsMinRate,statsMaxRate");
 
-                await foreach (PartitionEvent partitionEvent in consumer.ReadEventsAsync(ct))
+                await foreach (PartitionEvent partitionEvent in consumer.ReadEventsAsync(false, null, ct)) //starts reading new events only
                 {
                     //Console.WriteLine($"\nMessage received on partition {partitionEvent.Partition.PartitionId}:");
 
@@ -144,38 +150,52 @@ namespace IotEdgePerf.ConsoleApp
                         try
                         {
                             var msg = JsonConvert.DeserializeObject<AsaMessage>(line);
-
+                            
                             //do not show old messages
-                            DateTime t = DateTime.Parse(msg.t);
+                            //DateTime t = DateTime.Parse(msg.t);
 
-                            if (DateTime.Compare(t, discardBefore) > 0)
-                            {
+                            // no need to fiter on date. filters on session id
+                            //if (DateTime.Compare(t, discardBefore) > 0)
+                            //{
+                                // message received. restart timeout
                                 _timeout.Stop();
                                 _timeout.Start();
 
-                                // add for analysis
-                                double count = _analyzer.AddMessage(msg);
+                                // add message for later analysis
+                                int? count = _analyzer.AddMessage(msg, _sessionId.ToString());
 
-                                if (_showMsg)
+                                if (_showAsaMessage)
                                     Console.WriteLine($"Received: {line}");
                                 else
                                 {
-                                    double percentage = (count / expectedMessageCount) * 100;
-                                    Console.SetCursorPosition(0, Console.CursorTop - 1);
-                                    Console.WriteLine($"{percentage:000.0}% - {count}/{expectedMessageCount}");
+                                    // show progress
+                                    if (count != null)
+                                    {
+                                        double percentage = ((double)count / expectedMessageCount) * 100;
+                                        Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                        Console.WriteLine($"{percentage:000.0}% - {count}/{expectedMessageCount} - dicarded: {discarded}");
+                                    }
+                                    else
+                                    {
+                                        discarded++;
+                                        
+                                    }
+
+                                    
                                 }
+                            
 
                                 if (count == expectedMessageCount)
                                 {
                                     Console.WriteLine("\nAll expected messages have been received. Completed.\n \n");
-                                    _analyzer.DoAnalysis();
+                                    _analyzer.DoAnalysis(_sessionId.ToString());
                                     return;
                                 }
-                            }
-                            else
-                            {
-                                // discarded
-                            }
+                            //}
+                            //else
+                            //{
+                            //    // discarded
+                            //}
                         }
 
                         catch (Newtonsoft.Json.JsonReaderException e)

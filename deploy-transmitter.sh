@@ -8,7 +8,7 @@ deploymentManifest="./manifests/deployment.json"
 
 # az login
 
-build=$(cat ./source/BUILD)
+#build=$(cat ./source/BUILD)
 
 export upstream='$upstream'
 export edgeAgent='$edgeAgent'
@@ -51,5 +51,5 @@ result=$(az iot hub invoke-module-method --method-name 'RestartModule' -n $HUB_N
 ')
 
 # wait
-echo "waiting 10s for the module to start..."
-sleep 10
+echo "waiting 20s for the module to start..."
+sleep 20
