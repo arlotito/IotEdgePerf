@@ -34,7 +34,7 @@
               "storageFolder": {
                 "value": "/iotedge"
               },
-              "RuntimeLogLevel": {"value": "$EdgeHubRuntimeLogLevel"}
+              "RuntimeLogLevel": {"value": "info"}
             }
           }
         },
@@ -49,7 +49,7 @@
               "createOptions": "{}"
             },
             "env": {
-              "LOG_LEVEL": {"value": "$TransmitterRuntimeLogLevel"}
+              "LOG_LEVEL": {"value": "info"}
             }
           },
           "IoTEdgeMetricsCollector": {

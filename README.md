@@ -43,44 +43,28 @@ du -hd1 /iotedge
 ## Execute the tests
 
 ### Deploy the transmitter module (without metrics-collector)
-If you don't have a "./source/.env" already, create it with your settings:
-```bash
-cat > ./source/.env <<EOF
-MaxUpstreamBatchSize=10
-EdgeHubRuntimeLogLevel="info"
-TransmitterRuntimeLogLevel="info"
-EOF
-```
 
-Then deploy the transmitter module:
 ```bash
 ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200                                       
 ```
-The parameter "-b 200" sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. Change it to fit your needs.
+The parameter "-b 200" sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. 
+Change it to fit your needs.
 
-Add the flag "-m" to deploy the metrics-collector. 
 See the help of deploy-transmitter.sh with "-h".
 
 ### Deploy the transmitter module with metrics-collector
-If you don't have a "./source/.env" already, create it with your settings:
+Export the following ENV vars with your Log Analytics Workspace details:
 ```bash
-cat > ./source/.env <<EOF
-LOG_ANALYTICS_RESOURCE_ID="/subscriptions/dcb5e104-5*******a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/****"
-LOG_ANALYTICS_WORKSPACE_ID="1054c1b0-f*******ac02fbabc"
-LOG_ANALYTICS_SHARED_KEY="EKa3mz2+Shi+***********nb8zVIG7OMsXuwbrTQ=="
-METRICS_COLLECTOR_FREQUENCY=2
-MaxUpstreamBatchSize=10
-EdgeHubRuntimeLogLevel="info"
-TransmitterRuntimeLogLevel="info"
-EOF
+export LOG_ANALYTICS_RESOURCE_ID="/subscriptions/dcb5e104-5*******a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/****"
+export LOG_ANALYTICS_WORKSPACE_ID="1054c1b0-f*******ac02fbabc"
+export LOG_ANALYTICS_SHARED_KEY="EKa3mz2+Shi+***********nb8zVIG7OMsXuwbrTQ=="
+export METRICS_COLLECTOR_FREQUENCY=2
 ```
 
-Then deploy the transmitter module and metrics collector:
+Then deploy the transmitter module and the metrics collector (adding the flag '-m'):
 ```bash
 ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200 -m                                      
 ```
-
-Note the flag "-m": it will deploy the metrics-collector and provision it with the settings. 
 
 ### Run the tests
 ```bash
