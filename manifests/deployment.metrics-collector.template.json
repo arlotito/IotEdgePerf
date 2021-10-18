@@ -60,7 +60,7 @@
             "type": "docker",
             "env": {
               "ResourceId": {
-                "value": "$LOG_ANALYTICS_RESOURCE_ID"
+                "value": "$LOG_ANALYTICS_IOT_HUB_RESOURCE_ID"
               },
               "UploadTarget": {
                 "value": "AzureMonitor"

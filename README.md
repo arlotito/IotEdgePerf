@@ -55,7 +55,7 @@ See the help of deploy-transmitter.sh with "-h".
 ### Deploy the transmitter module with metrics-collector
 Export the following ENV vars with your Log Analytics Workspace details:
 ```bash
-export LOG_ANALYTICS_RESOURCE_ID="/subscriptions/dcb5e104-5*******a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/****"
+export LOG_ANALYTICS_IOT_HUB_RESOURCE_ID="/subscriptions/dcb5e104-5*******a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/****"
 export LOG_ANALYTICS_WORKSPACE_ID="1054c1b0-f*******ac02fbabc"
 export LOG_ANALYTICS_SHARED_KEY="EKa3mz2+Shi+***********nb8zVIG7OMsXuwbrTQ=="
 export METRICS_COLLECTOR_FREQUENCY=2

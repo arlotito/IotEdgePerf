@@ -74,11 +74,11 @@ if [ "$MetricsCollector" = "true" ]
 then
     deploymentManifestTemplate="./manifests/deployment.metrics-collector.template.json"
 
-    if [ ! "$LOG_ANALYTICS_RESOURCE_ID" ] || [ ! "$LOG_ANALYTICS_WORKSPACE_ID" ] || [ ! "$LOG_ANALYTICS_SHARED_KEY" ] || [ ! "$METRICS_COLLECTOR_FREQUENCY" ]; 
+    if [ ! "$LOG_ANALYTICS_IOT_HUB_RESOURCE_ID" ] || [ ! "$LOG_ANALYTICS_WORKSPACE_ID" ] || [ ! "$LOG_ANALYTICS_SHARED_KEY" ] || [ ! "$METRICS_COLLECTOR_FREQUENCY" ]; 
     then
         echo -e "${RED}ERROR: required ENV variable not found${NC}"
         echo "Please make sure to export:"
-        echo '  export LOG_ANALYTICS_RESOURCE_ID="/subscriptions/dcb5e104-5*******a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/****"'
+        echo '  export LOG_ANALYTICS_IOT_HUB_RESOURCE_ID="/subscriptions/dcb5e104-5*******a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/****"'
         echo '  export LOG_ANALYTICS_WORKSPACE_ID="1054c1b0-f*******ac02fbabc"'
         echo '  export LOG_ANALYTICS_SHARED_KEY="EKa3mz2+Shi+***********nb8zVIG7OMsXuwbrTQ=="'
         echo '  export METRICS_COLLECTOR_FREQUENCY=2'
