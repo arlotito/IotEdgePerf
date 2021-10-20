@@ -1,4 +1,6 @@
-WORK IN PROGRESS
+This is still a WORK IN PROGRESS.
+Feel free to contribute!
+
 ----------------
 
 # iotEdgePerf
