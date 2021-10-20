@@ -165,9 +165,16 @@ namespace IotEdgePerf.ConsoleApp
             }
 
             // check if EH info is provided
-            if (string.IsNullOrWhiteSpace(_eventHubConnectionString)
-                || string.IsNullOrWhiteSpace(_eventHubName))
+            if (string.IsNullOrWhiteSpace(_eventHubConnectionString))
             {
+                Console.WriteLine($"ERROR: _eventHubConnectionString not found.\n\n");
+                Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(result, null, null));
+                Environment.Exit(1);
+            }
+
+            if (string.IsNullOrWhiteSpace(_eventHubName))
+            {
+                Console.WriteLine($"ERROR: _eventHubName not found.\n\n");
                 Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(result, null, null));
                 Environment.Exit(1);
             }
