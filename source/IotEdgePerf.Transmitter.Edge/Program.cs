@@ -8,9 +8,7 @@ namespace IotEdgePerf.Transmitter.Edge
 
     using Newtonsoft.Json;
 
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Shared; // For TwinCollection
+    using IotEdgePerf.Mqtt;
     
     using Serilog;
     using Serilog.Core;
@@ -21,16 +19,19 @@ namespace IotEdgePerf.Transmitter.Edge
     
     class Program
     {
-        static ModuleClient _ioTHubModuleClient;
-        static string _moduleOutput = "output1";
+        //static ModuleClient _ioTHubModuleClient;
+        //static string _moduleOutput = "output1";
 
+        //
+        static IotEdgePerf.Mqtt.Client _mqttClient;
+    
         static string _deviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
         static string _iotHubHostname = Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME");
         static LoggingLevelSwitch _logLevelSwitch = new LoggingLevelSwitch();
 
         static TransmitterLogic _transmitter;
         
-        static TwinCollection _twin;
+        //static TwinCollection _twin;
 
         static void GetLogLevelFromEnv()
         {
@@ -77,29 +78,29 @@ namespace IotEdgePerf.Transmitter.Edge
             }
         }
 
-        static Task OnDesiredPropertiesUpdate(TwinCollection desiredProperties, object obj)
-        {
-            try
-            {
-                Log.Debug("Desired property change:\n{0}", JsonConvert.SerializeObject(desiredProperties));
-                _twin = desiredProperties;
-            }
+        // static Task OnDesiredPropertiesUpdate(TwinCollection desiredProperties, object obj)
+        // {
+        //     try
+        //     {
+        //         Log.Debug("Desired property change:\n{0}", JsonConvert.SerializeObject(desiredProperties));
+        //         _twin = desiredProperties;
+        //     }
 
-            catch (AggregateException ex)
-            {
-                foreach (Exception exception in ex.InnerExceptions)
-                {
-                    Log.Error("Error when receiving desired property: {0}", exception);
-                }
-            }
+        //     catch (AggregateException ex)
+        //     {
+        //         foreach (Exception exception in ex.InnerExceptions)
+        //         {
+        //             Log.Error("Error when receiving desired property: {0}", exception);
+        //         }
+        //     }
 
-            catch (Exception ex)
-            {
-                Log.Error("Error when receiving desired property: {0}", ex.Message);
-            }
+        //     catch (Exception ex)
+        //     {
+        //         Log.Error("Error when receiving desired property: {0}", ex.Message);
+        //     }
 
-            return Task.CompletedTask;
-        }
+        //     return Task.CompletedTask;
+        // }
 
         /// <summary>
         /// Initializes the ModuleClient and sets up the callback to receive
@@ -107,71 +108,90 @@ namespace IotEdgePerf.Transmitter.Edge
         /// </summary>
         static async Task Init()
         {
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-            ITransportSettings[] settings = { mqttSetting };
+            //MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            //ITransportSettings[] settings = { mqttSetting };
 
             // Open a connection to the Edge runtime
-            _ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
-            await _ioTHubModuleClient.OpenAsync();
+            //_ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            //await _ioTHubModuleClient.OpenAsync();
+
+            _mqttClient = new Mqtt.Client();
+            await _mqttClient.Init();
+
 
             // Read module twin
-            var moduleTwin = await _ioTHubModuleClient.GetTwinAsync();
-            await OnDesiredPropertiesUpdate(moduleTwin.Properties.Desired, _ioTHubModuleClient);
-            await _ioTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, null);
+            // var moduleTwin = await _ioTHubModuleClient.GetTwinAsync();
+            // await OnDesiredPropertiesUpdate(moduleTwin.Properties.Desired, _ioTHubModuleClient);
+            // await _ioTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, null);
 
             Log.Information("IoT Hub module client initialized.");
             Log.Information($"Device id: '{_deviceId}'");
             Log.Information($"IoT HUB: '{_iotHubHostname}'");
 
-            // creat an instance
+            // create an instance
             _transmitter = new TransmitterLogic();
-
+            
             // events handlers
-            _transmitter.SendMessageHandler         += SdkSendMessage;
-            _transmitter.SendMessageBatchHandler    += null;
-            _transmitter.CreateMessageHandler       += CreateMessage;
+            //_transmitter.SendMessageHandler         += SdkSendMessage;
+            //_transmitter.SendMessageBatchHandler    += null;
+            
+            _transmitter.CreateMessageHandler   += CreateMessage;
+            _transmitter.SendMessageHandler     += async (message) => await _mqttClient.SendEventAsync("output1", message);
 
             // direct methods handler
-            await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
+            // await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
+            _mqttClient.DirectMethodReceived += (request) => OnStartDm(request, _transmitter);
 
             // applies initial configuration from twins
-            _transmitter.ApplyConfiguration(TransmitterConfig.GetFromTwin(_twin));
+            //_transmitter.ApplyConfiguration(TransmitterConfig.GetFromTwin(_twin));
         }
 
-        private static Task<MethodResponse> OnStartDm(MethodRequest methodRequest, object userContext)
+        // private static Task<MethodResponse> OnStartDm(MethodRequest methodRequest, object userContext)
+        // {
+        //     TransmitterLogic transmitter = (TransmitterLogic)userContext;
+            
+        //     Log.Information($"Direct Method '{methodRequest.Name}' was called.");
+        //     Log.Debug($"{methodRequest.DataAsJson}");
+
+        //     var request = JsonConvert.DeserializeObject<TransmitterStartCommand>(methodRequest.DataAsJson);
+
+        //     transmitter.ApplyConfiguration(request.config);
+        //     transmitter.Start(request.runId);
+            
+        //     // Acknowlege the direct method call with a 200 success message
+        //     string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
+        //     return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
+        // }
+
+        private static void OnStartDm(string request, object userContext)
         {
             TransmitterLogic transmitter = (TransmitterLogic)userContext;
             
-            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
-            Log.Debug($"{methodRequest.DataAsJson}");
+            var startCommandRequest = JsonConvert.DeserializeObject<TransmitterStartCommand>(request);
+            Log.Information($"Direct Method was called.");
+            Log.Information($"payload: {request}");
 
-            var request = JsonConvert.DeserializeObject<TransmitterStartCommand>(methodRequest.DataAsJson);
-
-            transmitter.ApplyConfiguration(request.config);
-            transmitter.Start(request.runId);
-            
-            // Acknowlege the direct method call with a 200 success message
-            string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
-            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
+            transmitter.ApplyConfiguration(startCommandRequest.config);
+            transmitter.Start(startCommandRequest.runId);
         }
 
-        private static void SdkSendMessage(string message)
-        {
-            Message azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
-            _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage).Wait();
-        }
+        // private static void SdkSendMessage(string message)
+        // {
+        //     Message azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
+        //     _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage).Wait();
+        // }
 
-        private static void SdkSendMessageBatch(string[] messageBatch)
-        {
-            List<Message> azIotMessageBatch = new List<Message>();
+        // private static void SdkSendMessageBatch(string[] messageBatch)
+        // {
+        //     List<Message> azIotMessageBatch = new List<Message>();
 
-            foreach (var message in messageBatch)
-            {
-                azIotMessageBatch.Add(new Message(Encoding.ASCII.GetBytes(message)));
-            }
+        //     foreach (var message in messageBatch)
+        //     {
+        //         azIotMessageBatch.Add(new Message(Encoding.ASCII.GetBytes(message)));
+        //     }
 
-            _ioTHubModuleClient.SendEventBatchAsync(_moduleOutput, azIotMessageBatch).Wait();
-        }
+        //     _ioTHubModuleClient.SendEventBatchAsync(_moduleOutput, azIotMessageBatch).Wait();
+        // }
 
         private static object CreateMessage(int length)
         {
