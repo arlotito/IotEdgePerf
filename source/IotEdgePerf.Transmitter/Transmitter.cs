@@ -34,6 +34,7 @@ namespace IotEdgePerf.Transmitter
         public TransmitterLogic()
         {
             this._resetRequest.Set(false);
+            _config = new TransmitterConfigData();
         }
 
         public void Start(Guid runId)
