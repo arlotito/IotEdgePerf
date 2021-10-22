@@ -17,5 +17,21 @@ namespace IotEdgePerf.Transmitter.ConfigData
         public int waitBeforeStart;
 
         public int rateCalcPeriod;
+
+        public TransmitterConfigData()
+        {
+            enable=false;
+            burstLength=1000;
+            burstWait=5000;
+            burstNumber=1;
+            targetRate=1000;
+            payloadLength=1024;
+            batchSize=1;
+            logMsg=false;
+            logBurst=true;
+            logHist=false;
+            waitBeforeStart=0;
+            rateCalcPeriod=5000;
+        }
     }
 }
