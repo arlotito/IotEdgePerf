@@ -59,7 +59,7 @@ namespace IotEdgePerf.Transmitter.Edge
             }
         }
         
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             GetLogLevelFromEnv();
 
@@ -73,7 +73,7 @@ namespace IotEdgePerf.Transmitter.Edge
             
             while (true)
             {
-                _transmitter.Send();
+                await _transmitter.SendAsync();
             }
         }
 
@@ -127,9 +127,9 @@ namespace IotEdgePerf.Transmitter.Edge
             _transmitter = new TransmitterLogic();
 
             // events handlers
-            _transmitter.SendMessageHandler         += SdkSendMessage;
-            _transmitter.SendMessageBatchHandler    += null;
-            _transmitter.CreateMessageHandler       += CreateMessage;
+            _transmitter.SendMessage         += SdkSendMessage;
+            _transmitter.SendMessageBatch    += null;
+            _transmitter.CreateMessage       += CreateMessage;
 
             // direct methods handler
             await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
@@ -155,13 +155,13 @@ namespace IotEdgePerf.Transmitter.Edge
             return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
         }
 
-        private static void SdkSendMessage(string message)
+        private async static Task SdkSendMessage(string message)
         {
             Message azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
-            _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage).Wait();
+            await _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage);
         }
 
-        private static void SdkSendMessageBatch(string[] messageBatch)
+        private async static Task SdkSendMessageBatch(string[] messageBatch)
         {
             List<Message> azIotMessageBatch = new List<Message>();
 
@@ -170,7 +170,7 @@ namespace IotEdgePerf.Transmitter.Edge
                 azIotMessageBatch.Add(new Message(Encoding.ASCII.GetBytes(message)));
             }
 
-            _ioTHubModuleClient.SendEventBatchAsync(_moduleOutput, azIotMessageBatch).Wait();
+            await _ioTHubModuleClient.SendEventBatchAsync(_moduleOutput, azIotMessageBatch);
         }
 
         private static object CreateMessage(int length)

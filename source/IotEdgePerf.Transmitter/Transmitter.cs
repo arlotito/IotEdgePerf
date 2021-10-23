@@ -15,15 +15,15 @@ namespace IotEdgePerf.Transmitter
     using IotEdgePerf.Profiler;
     using IotEdgePerf.Transmitter.ConfigData;
 
-    public delegate void SendMessageEvent(string message);
-    public delegate void SendMessageBatchEvent(List<string> messageBatch);
-    public delegate object CreateMessage(int length);
+    public delegate Task SendMessageEventHandler(string message);
+    public delegate Task SendMessageBatchEventHandler(List<string> messageBatch);
+    public delegate object CreateMessageEventHandler(int length);
 
     public partial class TransmitterLogic
     {
-        public event SendMessageEvent SendMessageHandler; 
-        public event SendMessageBatchEvent SendMessageBatchHandler;
-        public event CreateMessage CreateMessageHandler;
+        public event SendMessageEventHandler SendMessage; 
+        public event SendMessageBatchEventHandler SendMessageBatch;
+        public event CreateMessageEventHandler CreateMessage;
 
         TransmitterConfigData _config;
 
@@ -49,7 +49,7 @@ namespace IotEdgePerf.Transmitter
             Log.Information("New configuration applied:\n{0}", JsonConvert.SerializeObject(this._config, Formatting.Indented));
         }
 
-        public void Send()
+        public async Task SendAsync()
         {
             double cyclePeriodMilliseconds;
 
@@ -118,7 +118,7 @@ namespace IotEdgePerf.Transmitter
                         //The resulting length must be equal to 'this._config.payloadLength'
                         //                                                     {"      - p -                    ": - <perfMessage> -          , - <object> }
                         int deltaPayloadLength = this._config.payloadLength - (2 + perfMessage.KeyName.Length + 2 + perfMessage.Json.Length + 1 + 1); 
-                        object applicationObject = this.CreateMessageHandler?.Invoke(deltaPayloadLength > 0 ? deltaPayloadLength : 0);
+                        object applicationObject = this.CreateMessage?.Invoke(deltaPayloadLength > 0 ? deltaPayloadLength : 0);
 
                         // adds the profiling telemetry data to the application message
                         string mergedMessageJson = perfMessage.AddTo(applicationObject);
@@ -131,9 +131,9 @@ namespace IotEdgePerf.Transmitter
                     // sends the message
                     profiler.MessageTransmissionStart();
                     if (messageBatch.Count == 1)
-                        this.SendMessageHandler?.Invoke(messageBatch[0]);
+                        await this.SendMessage?.Invoke(messageBatch[0]);
                     else
-                        this.SendMessageBatchHandler?.Invoke(messageBatch);
+                        await this.SendMessageBatch?.Invoke(messageBatch);
                     profiler.MessageTransmissionCompleted();
 
                     // waits to achieve desired target rate
@@ -146,7 +146,7 @@ namespace IotEdgePerf.Transmitter
                     profiler.ShowSessionSummary();
                 }
 
-                Task.Delay(this._config.burstWait); //wait even if last burst
+                await Task.Delay(this._config.burstWait); //wait even if last burst
             }
 
             // stops further transmissions.
