@@ -28,6 +28,9 @@
               "createOptions": "{\"HostConfig\":{\"Binds\":[\"/iotedge:/tmp/edgeHub\"]}}"
             },
             "env": {
+              "MessageCleanupIntervalSecs": {
+                "value": "7200"
+              },
               "MaxUpstreamBatchSize": {
                 "value": "$MaxUpstreamBatchSize"
               },
