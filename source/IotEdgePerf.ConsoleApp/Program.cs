@@ -63,11 +63,14 @@ namespace IotEdgePerf.ConsoleApp
                 && !String.IsNullOrEmpty(_deviceId)
             )
             {
-                // Create a ServiceClient to communicate with service-facing endpoint on your hub.
-                _iotEdgePerfService = new IotEdgePerfService(_iotHubConnectionString, _deviceId, "source");
+                // Create a IotEdgePerfService
+                _iotEdgePerfService = new IotEdgePerfService(
+                    _iotHubConnectionString, 
+                    _deviceId, 
+                    "source"    //module name
+                );
 
                 // Apply config
-                
                 await _iotEdgePerfService.Start(_sessionId, _transmitterConfigData);
             }
             else
@@ -125,23 +128,17 @@ namespace IotEdgePerf.ConsoleApp
                     _eventHubConnectionString,
                     _eventHubName);
 
-            //Console.WriteLine($"Discarding messages before {discardBefore.ToString("yyyy-MM-ddTHH:mm:ss.ffffffK")}\n");
-
             Console.WriteLine("Listening for messages on all partitions.");
             Console.WriteLine($"Reading events (timeout={_timeoutInterval}ms)... ctrl-C to exit.\n");
 
             Console.WriteLine("");
 
             int expectedMessageCount = _transmitterConfigData.burstLength * _transmitterConfigData.burstNumber * _transmitterConfigData.burstNumber;
-            
+
             try
             {
-                //Console.WriteLine("timestamp,counter,total,messagesCount,asaEstimatedRate,asaAvgLatency,asaMinLatency,asaMaxLatency,statsAvgRate,statsMinRate,statsMaxRate");
-
                 await foreach (PartitionEvent partitionEvent in consumer.ReadEventsAsync(false, null, ct)) //starts reading new events only
                 {
-                    //Console.WriteLine($"\nMessage received on partition {partitionEvent.Partition.PartitionId}:");
-
                     string data = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
                     string[] lines = data.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -150,52 +147,38 @@ namespace IotEdgePerf.ConsoleApp
                         try
                         {
                             var msg = JsonConvert.DeserializeObject<AsaMessage>(line);
-                            
-                            //do not show old messages
-                            //DateTime t = DateTime.Parse(msg.t);
 
-                            // no need to fiter on date. filters on session id
-                            //if (DateTime.Compare(t, discardBefore) > 0)
-                            //{
-                                // message received. restart timeout
-                                _timeout.Stop();
-                                _timeout.Start();
+                            // message received. restart timeout
+                            _timeout.Stop();
+                            _timeout.Start();
 
-                                // add message for later analysis
-                                int? count = _analyzer.AddMessage(msg, _sessionId.ToString());
+                            // add message for later analysis
+                            int? count = _analyzer.AddMessage(msg, _sessionId.ToString());
 
-                                if (_showAsaMessage)
-                                    Console.WriteLine($"Received: {line}");
+                            if (_showAsaMessage)
+                                Console.WriteLine($"Received: {line}");
+                            else
+                            {
+                                // show progress
+                                if (count != null)
+                                {
+                                    double percentage = ((double)count / expectedMessageCount) * 100;
+                                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                                    Console.WriteLine($"{percentage:000.0}% - {count}/{expectedMessageCount} - discarded: {discarded}");
+                                }
                                 else
                                 {
-                                    // show progress
-                                    if (count != null)
-                                    {
-                                        double percentage = ((double)count / expectedMessageCount) * 100;
-                                        Console.SetCursorPosition(0, Console.CursorTop - 1);
-                                        Console.WriteLine($"{percentage:000.0}% - {count}/{expectedMessageCount} - dicarded: {discarded}");
-                                    }
-                                    else
-                                    {
-                                        discarded++;
-                                        
-                                    }
+                                    discarded++;
 
-                                    
                                 }
-                            
+                            }
 
-                                if (count == expectedMessageCount)
-                                {
-                                    Console.WriteLine("\nAll expected messages have been received. Completed.\n \n");
-                                    _analyzer.DoAnalysis(_sessionId.ToString());
-                                    return;
-                                }
-                            //}
-                            //else
-                            //{
-                            //    // discarded
-                            //}
+                            if (count == expectedMessageCount)
+                            {
+                                Console.WriteLine("\nAll expected messages have been received. Completed.\n \n");
+                                _analyzer.DoAnalysis(_sessionId.ToString());
+                                return;
+                            }
                         }
 
                         catch (Newtonsoft.Json.JsonReaderException e)
