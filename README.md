@@ -50,7 +50,7 @@ du -hd1 /iotedge
 ### Deploy the transmitter module (without metrics-collector)
 
 ```bash
-./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200                                       
+./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.6.0 -b 200                                       
 ```
 The parameter "-b 200" sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. 
 Change it to fit your needs.
@@ -68,7 +68,7 @@ export METRICS_COLLECTOR_FREQUENCY=2
 
 Then deploy the transmitter module and the metrics collector (adding the flag '-m'):
 ```bash
-./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200 -m                                      
+./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.6.0 -b 200 -m                                      
 ```
 
 ### Run the tests
