@@ -22,9 +22,9 @@ The framework includes:
 
 An example:
 ```bash
-dotnet run -- --payload-length=1024 --burst-length=10000 target-rate=1000
+dotnet run -- --payload-length=2048 --burst-length=10000 target-rate=500
 ```
-![](/images/simple-example-annotations.png)
+![](/images/simple-example.png)
 
 # Getting started
 Pre-requisites:
@@ -78,14 +78,14 @@ dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
   --eh-conn-string="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxx" \
   --iot-conn-string="HostName=xxx;SharedAccessKeyName=service;SharedAccessKey=xxx" \
   --device-id="myEdgeDevice" \
-  --payload-length=1024 \
+  --payload-length=2048 \
   --burst-length=10000 \
-  --target-rate=2000 \
+  --target-rate=500 \
   -o test.csv
 ```
 
 And here's the result:
-![](./images/example-10Kmsg-1Krate.png)
+![](./images/simple-example.png)
 
 To make the command line command shorter, some parameters can laso be passed over via ENV variables:
 ```bash
