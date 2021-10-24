@@ -16,7 +16,7 @@ The framework includes:
 
 * a [transmitter module](source/IotEdgePerf.Transmitter.Edge/) (1), to generate traffic 
   (arlotito/iotedgeperf-transmitter [![for easy](https://img.shields.io/docker/v/arlotito/iotedgeperf-transmitter)](https://hub.docker.com/repository/docker/arlotito/iotedgeperf-transmitter))
-* an [IotEdgePer.Profiler](source/IotEdgePerf.Profiler/) class (2), ...
+* an [IotEdgePer.Profiler](source/IotEdgePerf.Profiler/) class (2), used by the transmitter module. It can also be used to instrument and profile your code
 * an [ASA query](./asa/) (3), to measure the ingestion latency and rate
 * the [IotEdgePer.ConsoleApp](source/IotEdgePerf.ConsoleApp/) (4) CLI app, to control the transmitter, to analyze the data produced by the ASA job and show the results
 
