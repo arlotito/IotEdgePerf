@@ -98,8 +98,8 @@
     },
     "source": {
       "properties.desired": {
-        "sourceOptions": {
-          "enable": false,
+        "config": {
+          "autoStart": false,
           "burstLength": 1000,
           "burstWait": 7000,
           "burstNumber": 1,

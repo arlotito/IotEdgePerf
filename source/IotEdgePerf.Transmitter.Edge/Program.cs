@@ -17,6 +17,7 @@ namespace IotEdgePerf.Transmitter.Edge
     using Serilog.Events;
 
     using IotEdgePerf.Transmitter;
+    using IotEdgePerf.Transmitter.ConfigData;
     using IotEdgePerf.Transmitter.Commands;
     
     class Program
@@ -77,29 +78,7 @@ namespace IotEdgePerf.Transmitter.Edge
             }
         }
 
-        static Task OnDesiredPropertiesUpdate(TwinCollection desiredProperties, object obj)
-        {
-            try
-            {
-                Log.Debug("Desired property change:\n{0}", JsonConvert.SerializeObject(desiredProperties));
-                _twin = desiredProperties;
-            }
-
-            catch (AggregateException ex)
-            {
-                foreach (Exception exception in ex.InnerExceptions)
-                {
-                    Log.Error("Error when receiving desired property: {0}", exception);
-                }
-            }
-
-            catch (Exception ex)
-            {
-                Log.Error("Error when receiving desired property: {0}", ex.Message);
-            }
-
-            return Task.CompletedTask;
-        }
+        
 
         /// <summary>
         /// Initializes the ModuleClient and sets up the callback to receive
@@ -116,44 +95,27 @@ namespace IotEdgePerf.Transmitter.Edge
 
             // Read module twin
             var moduleTwin = await _ioTHubModuleClient.GetTwinAsync();
-            await OnDesiredPropertiesUpdate(moduleTwin.Properties.Desired, _ioTHubModuleClient);
-            await _ioTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, null);
-
+            await OnDesiredPropertiesUpdate(moduleTwin.Properties.Desired, _transmitter);
+            
             Log.Information("IoT Hub module client initialized.");
             Log.Information($"Device id: '{_deviceId}'");
             Log.Information($"IoT HUB: '{_iotHubHostname}'");
 
-            // creat an instance
-            _transmitter = new TransmitterLogic();
+            // applies initial configuration from twins
+            var transmitterConfig = TransmitterConfigData.GetFromObject(_twin["config"]);
+            _transmitter = new TransmitterLogic(transmitterConfig);
 
-            // events handlers
+            // transmitter events handlers
             _transmitter.SendMessage         += SdkSendMessage;
             _transmitter.SendMessageBatch    += null;
             _transmitter.CreateMessage       += CreateMessage;
 
-            // direct methods handler
+            // twin and dm handlers
+            await _ioTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, _transmitter);
             await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
-
-            // applies initial configuration from twins
-            _transmitter.ApplyConfiguration(TransmitterConfig.GetFromTwin(_twin));
         }
 
-        private static Task<MethodResponse> OnStartDm(MethodRequest methodRequest, object userContext)
-        {
-            TransmitterLogic transmitter = (TransmitterLogic)userContext;
-            
-            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
-            Log.Debug($"{methodRequest.DataAsJson}");
-
-            var request = JsonConvert.DeserializeObject<TransmitterStartCommand>(methodRequest.DataAsJson);
-
-            transmitter.ApplyConfiguration(request.config);
-            transmitter.Start(request.runId);
-            
-            // Acknowlege the direct method call with a 200 success message
-            string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
-            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
-        }
+        
 
         private async static Task SdkSendMessage(string message)
         {
@@ -201,6 +163,51 @@ namespace IotEdgePerf.Transmitter.Edge
             }
 
             return new String(stringChars);
+        }
+
+        private static Task<MethodResponse> OnStartDm(MethodRequest methodRequest, object userContext)
+        {
+            TransmitterLogic transmitter = (TransmitterLogic)userContext;
+
+            Log.Information($"Direct Method '{methodRequest.Name}' was called.");
+            Log.Debug($"{methodRequest.DataAsJson}");
+
+            var request = JsonConvert.DeserializeObject<TransmitterStartCommand>(methodRequest.DataAsJson);
+
+            transmitter.ApplyConfiguration(request.config);
+            transmitter.Restart(request.runId);
+
+            // Acknowlege the direct method call with a 200 success message
+            string result = $"{{\"result\":\"Executed direct method: {methodRequest.Name}\"}}";
+            return Task.FromResult(new MethodResponse(Encoding.UTF8.GetBytes(result), 200));
+        }
+
+        static Task OnDesiredPropertiesUpdate(TwinCollection desiredProperties, object userContext)
+        {
+            TransmitterLogic transmitter = (TransmitterLogic)userContext;
+
+            try
+            {
+                Log.Debug("Desired property change:\n{0}", JsonConvert.SerializeObject(desiredProperties));
+                _twin = desiredProperties;
+
+                transmitter.ApplyConfiguration(TransmitterConfigData.GetFromObject(desiredProperties["config"]));
+            }
+
+            catch (AggregateException ex)
+            {
+                foreach (Exception exception in ex.InnerExceptions)
+                {
+                    Log.Error("Error when receiving desired property: {0}", exception);
+                }
+            }
+
+            catch (Exception ex)
+            {
+                Log.Error("Error when receiving desired property: {0}", ex.Message);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

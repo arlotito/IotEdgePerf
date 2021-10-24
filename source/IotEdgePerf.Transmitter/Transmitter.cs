@@ -3,8 +3,6 @@ namespace IotEdgePerf.Transmitter
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Diagnostics;
-    using System.Text;
     
     using System.Collections.Generic;
     using Newtonsoft.Json;
@@ -29,55 +27,72 @@ namespace IotEdgePerf.Transmitter
 
         Guid _sessionId;
 
-        readonly AtomicBoolean _resetRequest = new AtomicBoolean(false);
+        readonly AtomicBoolean _startRequested = new AtomicBoolean(false);
+        readonly AtomicBoolean _stopRequested = new AtomicBoolean(false);
 
-        public TransmitterLogic()
+        public TransmitterLogic(TransmitterConfigData config)
         {
-            this._resetRequest.Set(false);
+            this._startRequested.Set(false);
+            this.ApplyConfiguration(config);
         }
 
-        public void Start(Guid runId)
+        public void Restart(Guid runId)
         {
+            Log.Information($"started with id={runId.ToString()}.");
             this._sessionId = runId;
-            this._resetRequest.Set(true);
-            this._config.enable=true; //enables the transmitter
+
+            //stop a the ongoing transmission (if any)
+            Stop();
+
+            //enables the transmitter
+            this._startRequested.Set(true);
+        }
+
+        public void Stop()
+        {
+            Log.Information("stop requested.");
+            this._stopRequested.Set(true); //stops transmission
         }
 
         public void ApplyConfiguration(TransmitterConfigData config)
         {
             this._config = config;
             Log.Information("New configuration applied:\n{0}", JsonConvert.SerializeObject(this._config, Formatting.Indented));
+
+            // if autostart, start transmission immediately, otherwise stop ongoing transmission if any
+            if (this._config.autoStart == true)
+                this.Restart(Guid.NewGuid());
+            else
+                this.Stop();
         }
 
         public async Task SendAsync()
         {
-            double cyclePeriodMilliseconds;
+            double desiredTransmissionInterval;
 
-            if (!this._config.enable)
-            {
-                // transmitter is disabled. Nothing to do.
-                return; 
-            }
+            if (!this._startRequested)
+                return; //no transmission requested yet. nothing to do
+            else
+                this._startRequested.Set(false);
 
-            // clear the resetRequest flag
-            // (the resetRequest flag is used to stop a transmission if in progress)
-            if (this._resetRequest)
-            {
-                Log.Information("reset request received. nothing to do.");
-                this._resetRequest.Set(false);
-            }
+            // clear any pending request
+            if (this._stopRequested)
+                this._stopRequested.Set(false);
+
+            // transmitter is enabled. Let's start.
 
             // wait before starting
             Log.Information($"waiting {_config.waitBeforeStart} ms before starting...");
             Thread.Sleep(this._config.waitBeforeStart);
+            
             Log.Information($"transmission started.");
 
             // calculates the cycle time period to achieve desired target rate
             if (this._config.targetRate > 0)
-                cyclePeriodMilliseconds = 1 / (double)this._config.targetRate * 1000;
+                desiredTransmissionInterval = 1 / (double)this._config.targetRate * 1000;
             else
-                cyclePeriodMilliseconds = 0;
-            Log.Information($"(calculated) cycle period [ms]: {cyclePeriodMilliseconds}");
+                desiredTransmissionInterval = 0;
+            Log.Information($"(calculated) cycle period [ms]: {desiredTransmissionInterval}");
 
             // let's start the transmission
             Log.Information($"Session ID: {_sessionId}");
@@ -93,19 +108,18 @@ namespace IotEdgePerf.Transmitter
                 // MESSAGE loop (in a burst we have 'this._config.burstLength' messages)
                 for (int messageIndex = 0; messageIndex < this._config.burstLength; messageIndex++)
                 {
+                    if (this._stopRequested)
+                    {
+                        //stops transmission
+                        Log.Information("stopped.");
+                        return;
+                    }
+                    
                     profiler.MessageCycleStart();
 
                     Log.Debug("Message index: {0}", messageIndex);
 
-                    // stops in case a reset was requested
-                    if (_resetRequest)
-                    {
-                        Log.Information("reset request received. stops transmission.");
-                        this._resetRequest.Set(false); //clears the request
-                        return; 
-                    }
-
-                    
+                                        
                     // create single message or batch of messages
                     var messageBatch = new List<string>();
                     for (int k = 0; k < this._config.batchSize; k++)
@@ -137,7 +151,7 @@ namespace IotEdgePerf.Transmitter
                     profiler.MessageTransmissionCompleted();
 
                     // waits to achieve desired target rate
-                    profiler.WaitToAchieveDesiredRate(cyclePeriodMilliseconds);
+                    profiler.WaitToAchieveDesiredTransmissionInterval(desiredTransmissionInterval);
                 }
 
                 // burst completed
@@ -149,10 +163,8 @@ namespace IotEdgePerf.Transmitter
                 await Task.Delay(this._config.burstWait); //wait even if last burst
             }
 
-            // stops further transmissions.
-            // A new transmission must be requested via twin or DM
-            this._config.enable = false;
-            return; //completed
+            // transmission completed.
+            return; 
         }
 
     }

@@ -185,7 +185,7 @@ namespace IotEdgePerf.ConsoleApp
             _customLabel = _parameters.TestLabel;
             
             _transmitterConfigData = new TransmitterConfigData {
-                enable = false,
+                autoStart = false,
                 burstLength=_parameters.burstLength,
                 burstWait=_parameters.burstWait,
                 burstNumber=_parameters.burstNumber,

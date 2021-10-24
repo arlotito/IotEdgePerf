@@ -1,8 +1,10 @@
+using Newtonsoft.Json;
+
 namespace IotEdgePerf.Transmitter.ConfigData
 {
     public class TransmitterConfigData
     {
-        public bool enable;
+        public bool autoStart;
         public int burstLength;
         public int burstWait;
         public int burstNumber;
@@ -17,5 +19,15 @@ namespace IotEdgePerf.Transmitter.ConfigData
         public int waitBeforeStart;
 
         public int rateCalcPeriod;
+
+        public static TransmitterConfigData GetFromJson(string configDataJson)
+        {
+            return JsonConvert.DeserializeObject<TransmitterConfigData>(configDataJson);
+        }
+
+        public static TransmitterConfigData GetFromObject(object obj)
+        {
+            return JsonConvert.DeserializeObject<TransmitterConfigData>(JsonConvert.SerializeObject(obj));
+        }
     }
 }
