@@ -97,7 +97,7 @@ namespace IotEdgePerf.Profiler
             return this._sessionStopwatch.Elapsed.TotalMilliseconds;
         }
 
-        public void WaitToAchieveDesiredRate(double cyclePeriodTimeMilliseconds)
+        public void WaitToAchieveDesiredTransmissionInterval(double cyclePeriodTimeMilliseconds)
         {
             double waitUntil = cyclePeriodTimeMilliseconds * this._messageSequenceNumberInSession;
             
