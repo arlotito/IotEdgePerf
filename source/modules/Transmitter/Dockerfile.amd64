@@ -2,8 +2,8 @@ FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build-env
 WORKDIR /app
 
 COPY . ./
-RUN dotnet restore source/Transmitter/*.csproj
-RUN dotnet publish source/Transmitter/*.csproj -c Release -o out
+RUN dotnet restore source/IotEdgePerf.Transmitter.Edge/*.csproj
+RUN dotnet publish source/IotEdgePerf.Transmitter.Edge/*.csproj -c Release -o out
 
 FROM mcr.microsoft.com/dotnet/runtime:3.1
 WORKDIR /app
@@ -16,4 +16,4 @@ RUN chmod 777 /usr/local/cache
 RUN useradd -ms /bin/bash moduleuser
 USER moduleuser
 
-ENTRYPOINT ["dotnet", "Transmitter.dll"]
+ENTRYPOINT ["dotnet", "Transmitter.Edge.dll"]
