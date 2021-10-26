@@ -58,8 +58,6 @@ du -hd1 /iotedge
 The parameter "-b 200" sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. 
 Change it to fit your needs.
 
-See the help of deploy-transmitter.sh with "-h".
-
 ### Deploy the transmitter module with metrics-collector
 ```bash
 ./deploy-transmitter.sh -n myIotHub \
@@ -68,7 +66,7 @@ See the help of deploy-transmitter.sh with "-h".
   -b 200 \
   -m -w myLogAnalyticsWsName -g myLogAnalyticsWsResourceGroup -f 2                                     
 ```
-The paramter "-f 2" would set the metrics scraping to 2 seconds. Chnage it if needed.
+The paramter "-f 2" would set the metrics scraping to 2 seconds. Change it to fit your needs.
 
 ### Run the tests
 ```bash
