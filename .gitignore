@@ -1,5 +1,2 @@
 .vs/
-local/
-local-test/
-*secrets.*
-*.csv
+local-*/
