@@ -68,7 +68,7 @@ Change it to fit your needs.
 ```
 The paramter "-f 2" would set the metrics scraping to 2 seconds. Change it to fit your needs.
 
-### Run the tests
+### Run the Console APP from any machine 
 ```bash
 dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
   --ehName="myEventHubName" \
