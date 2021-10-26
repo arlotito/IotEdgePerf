@@ -102,12 +102,6 @@ dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
   -o test.csv
 ```
 
-To get the help:
-```bash
-dotnet run -p ./source/IotEdgePerf.ConsoleApp -- -h
-```
-
-
 ## Optionally build the iotEdgePerf tool
 On the DEV machine, build the iotEdgePerfTool as a self-contained binary:
 ```bash
