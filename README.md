@@ -47,7 +47,7 @@ du -hd1 /iotedge
 
 ## Execute the tests
 
-### Deploy the transmitter module (without metrics-collector)
+### Deploy the transmitter module (without metrics-collector) to the Device Under Test (DUT)
 
 ```bash
 ./deploy-transmitter.sh -n myIotHub \
@@ -58,7 +58,7 @@ du -hd1 /iotedge
 The parameter "-b 200" sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. 
 Change it to fit your needs.
 
-### Deploy the transmitter module with metrics-collector
+### Deploy the transmitter module with metrics-collector to the DUT
 ```bash
 ./deploy-transmitter.sh -n myIotHub \
   -d myEdgeDevice \
