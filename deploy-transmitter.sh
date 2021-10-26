@@ -8,7 +8,12 @@ Usage: ./deploy-transmitter.sh
   -b  <size>                    (optional) this value will be assigned to edgeHub's MaxUpstreamBatchSize env var.
                                 If provided, it will override the env variable $MaxUpstreamBatchSize
   -i  <image-uri:tag>           image URI with
+
+with Log Analytics:  
   -m                            (optional) deploys the metrics-collector
+  -w  <workspace-name>          (required if '-m' is used) log analytics workspace name
+  -g  <workspace-rf>            (required if '-m' is used) log analytics workspace resource group
+  -f  <interval>                (required if '-m' is used) metrics scraping interval (in seconds)
   
 Examples:
 
@@ -16,7 +21,7 @@ deploy transmitter only:
     ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 
 
 deploy transmitter and metrics-collector:
-    ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -m
+    ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -m -w myLogWs -g myLogWsRg -f 2
 
 deploy transmitter and set MaxUpstreamBatchSize=200:
     ./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.5.0 -b 200
@@ -33,7 +38,7 @@ EOF
 # default values
 MetricsCollector="false"
 
-while getopts "hmn:d:b:i:m:e:" args; do
+while getopts "hmn:d:b:i:m:e:w:g:f:" args; do
     case "${args}" in
         h ) showHelp;;
         n ) HUB_NAME="${OPTARG}";;
@@ -42,6 +47,9 @@ while getopts "hmn:d:b:i:m:e:" args; do
         i ) TRANSMITTER_IMAGE_URI="${OPTARG}";;
         e ) EnvFile="${OPTARG}";;
         m ) MetricsCollector="true";;
+        w ) LOG_ANALYTICS_WS_NAME="${OPTARG}";;
+        g ) LOG_ANALYTICS_WS_RG="${OPTARG}";;
+        f ) METRICS_COLLECTOR_FREQUENCY="${OPTARG}";;
         \? ) echo "Unknown option: -$OPTARG" >&2; echo; showHelp; exit 1;;
         :  ) echo "Missing option argument for -$OPTARG" >&2; echo; showHelp; exit 1;;
         *  ) echo "Unimplemented option: -$OPTARG" >&2; echo; showHelp; exit 1;;
@@ -60,40 +68,48 @@ then
     exit 1
 fi
 
+if [ "$MetricsCollector" = "true" ];
+then
+    if [ ! "$LOG_ANALYTICS_WS_NAME" ] || [ ! "$LOG_ANALYTICS_WS_RG" ] || [ ! "$METRICS_COLLECTOR_FREQUENCY" ];
+    then
+        echo -e "${RED}ERROR: required parameter is missing${NC}"
+        echo "Please see help: $0 -h"
+        exit 1
+    fi
+fi
+
 echo
 echo "Settings:"
-echo "transmitter image uri:    $TRANSMITTER_IMAGE_URI"
-echo "IoT HUB name:             $HUB_NAME"
-echo "Device name:              $DEVICE_NAME"
-echo "deploy metrics-collector: $MetricsCollector"
-echo
-
+echo "transmitter image uri:        $TRANSMITTER_IMAGE_URI"
+echo "IoT HUB name:                 $HUB_NAME"
+echo "Device name:                  $DEVICE_NAME"
+echo "deploy metrics-collector:     $MetricsCollector"
 
 # selects deployment manifest with/without metrics collector depending on MetricsCollector flag
 if [ "$MetricsCollector" = "true" ]
 then
-    deploymentManifestTemplate="./manifests/deployment.metrics-collector.template.json"
+    echo "Log Analytics Workspace name: $LOG_ANALYTICS_WS_NAME"
+    echo "Log Analytics Workspace rg:   $LOG_ANALYTICS_WS_RG"
+    echo "Metrics scraping interval:    $METRICS_COLLECTOR_FREQUENCY"
 
-    if [ ! "$LOG_ANALYTICS_IOT_HUB_RESOURCE_ID" ] || [ ! "$LOG_ANALYTICS_WORKSPACE_ID" ] || [ ! "$LOG_ANALYTICS_SHARED_KEY" ] || [ ! "$METRICS_COLLECTOR_FREQUENCY" ]; 
-    then
-        echo -e "${RED}ERROR: required ENV variable not found${NC}"
-        echo "Please make sure to export:"
-        echo '  export LOG_ANALYTICS_IOT_HUB_RESOURCE_ID="/subscriptions/dcb5e104-5*******a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/****"'
-        echo '  export LOG_ANALYTICS_WORKSPACE_ID="1054c1b0-f*******ac02fbabc"'
-        echo '  export LOG_ANALYTICS_SHARED_KEY="EKa3mz2+Shi+***********nb8zVIG7OMsXuwbrTQ=="'
-        echo '  export METRICS_COLLECTOR_FREQUENCY=2'
-        exit 1
-    fi
+    deploymentManifestTemplate="./manifests/deployment.metrics-collector.template.json"
+    
+    export LOG_ANALYTICS_IOT_HUB_RESOURCE_ID=$(az iot hub show -n $HUB_NAME --query id -o tsv)
+    export LOG_ANALYTICS_WORKSPACE_ID=$(az monitor log-analytics workspace show -n $LOG_ANALYTICS_WS_NAME -g $LOG_ANALYTICS_WS_RG --query customerId -o tsv)
+    export LOG_ANALYTICS_SHARED_KEY=$(az monitor log-analytics workspace get-shared-keys -n $LOG_ANALYTICS_WS_NAME -g $LOG_ANALYTICS_WS_RG --query primarySharedKey -o tsv)
 else
     deploymentManifestTemplate="./manifests/deployment.template.json"
 fi
 deploymentManifest="./manifests/deployment.json"
+
+echo "Deployment manifest template: $deploymentManifestTemplate"
 
 # do not touch
 export upstream='$upstream'
 export edgeAgent='$edgeAgent'
 export edgeHub='$edgeHub'
 export TRANSMITTER_IMAGE_URI=$TRANSMITTER_IMAGE_URI
+export METRICS_COLLECTOR_FREQUENCY=$METRICS_COLLECTOR_FREQUENCY
 
 # if provided, the command line parameter overrides the env variable
 if [ "$MaxUpstreamBatchSizeArg" ]

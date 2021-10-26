@@ -50,7 +50,10 @@ du -hd1 /iotedge
 ### Deploy the transmitter module (without metrics-collector)
 
 ```bash
-./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.6.0 -b 200                                       
+./deploy-transmitter.sh -n myIotHub \
+  -d myEdgeDevice \
+  -i arlotito/iotedgeperf-transmitter:0.6.0 \
+  -b 200                                       
 ```
 The parameter "-b 200" sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. 
 Change it to fit your needs.
@@ -58,18 +61,14 @@ Change it to fit your needs.
 See the help of deploy-transmitter.sh with "-h".
 
 ### Deploy the transmitter module with metrics-collector
-Export the following ENV vars with your Log Analytics Workspace details:
 ```bash
-export LOG_ANALYTICS_IOT_HUB_RESOURCE_ID="/subscriptions/dcb5e104-5*******a5d686ccf6/resourceGroups/edge-benchmark-hub-rg/providers/Microsoft.Devices/IotHubs/****"
-export LOG_ANALYTICS_WORKSPACE_ID="1054c1b0-f*******ac02fbabc"
-export LOG_ANALYTICS_SHARED_KEY="EKa3mz2+Shi+***********nb8zVIG7OMsXuwbrTQ=="
-export METRICS_COLLECTOR_FREQUENCY=2
+./deploy-transmitter.sh -n myIotHub \
+  -d myEdgeDevice \
+  -i arlotito/iotedgeperf-transmitter:0.6.0 \
+  -b 200 \
+  -m -w myLogAnalyticsWsName -g myLogAnalyticsWsResourceGroup -f 2                                     
 ```
-
-Then deploy the transmitter module and the metrics collector (adding the flag '-m'):
-```bash
-./deploy-transmitter.sh -n myIotHub -d myEdgeDevice -i arlotito/iotedgeperf-transmitter:0.6.0 -b 200 -m                                      
-```
+The paramter "-f 2" would set the metrics scraping to 2 seconds. Chnage it if needed.
 
 ### Run the tests
 ```bash
