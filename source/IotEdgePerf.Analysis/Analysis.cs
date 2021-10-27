@@ -1,5 +1,4 @@
 ﻿using IotEdgePerf.Shared;
-using IotEdgePerf.Transmitter.ConfigData;
 using System;
 using System.Collections.Generic;
 using System.IO;
