@@ -20,8 +20,6 @@
     <Compile Include="..\IotEdgePerf.Shared\*.cs" />
     <Compile Include="..\IotEdgePerf.Service\*.cs" />
     <Compile Include="..\IotEdgePerf.Analysis\*.cs" />
-    <Compile Include="..\IotEdgePerf.Transmitter\*.cs" />
-    <Compile Include="..\IotEdgePerf.Profiler\*.cs" />
   </ItemGroup>
 
 </Project>
