@@ -172,8 +172,14 @@ namespace IotEdgePerf.Analysis
             csvRow += String.Format($"DeviceEgressThroughputKBs,");
             csvRow += String.Format($"IotHubIngressThroughputKBs,");
             csvRow += String.Format($"DeviceToIotHubAvgLatency,DeviceToIotHubMinLatency,DeviceToIotHubMaxLatency,");
-            csvRow += String.Format($"DeviceAvgTransmissionDuration,DeviceMinTransmissionDuration,DeviceMaxTransmissionDuration,");
-            csvRow += String.Format($"CustomLabel");
+            csvRow += String.Format($"DeviceAvgTransmissionDuration,DeviceMinTransmissionDuration,DeviceMaxTransmissionDuration");
+
+            int cnt=1;
+            foreach (var field in CustomLabel.Split(','))
+            {
+                csvRow += String.Format($",CustomLabel{cnt++}");    
+            }
+            
             csvRow += String.Format($"\n");
 
             return csvRow;
@@ -241,15 +247,7 @@ namespace IotEdgePerf.Analysis
                         group item by (item.sessionId, item.burstCounter) into sessionGroup
                         orderby sessionGroup.Key ascending
                         select sessionGroup;
-                        
-
-            // if needed, creates file with header
-            if (!String.IsNullOrEmpty(this._csvFilename))
-            {
-                if (!File.Exists(this._csvFilename))
-                    File.AppendAllText(_csvFilename, new BurstAnalysisData().GetCsvHeader());
-            }
-
+            
             // perform analysis
             foreach (var sessionGroup in query)
             {
@@ -331,6 +329,9 @@ namespace IotEdgePerf.Analysis
                 // saves to CSV file
                 if (!String.IsNullOrEmpty(this._csvFilename))
                 {
+                    if (!File.Exists(this._csvFilename))
+                        File.AppendAllText(_csvFilename, burstAnalysisData.GetCsvHeader());
+                    
                     File.AppendAllText(_csvFilename, burstAnalysisData.ToCsvString());
                 }
             }
