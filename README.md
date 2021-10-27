@@ -36,9 +36,7 @@ Pre-requisites:
 ## Prep the IoT Edge
 Log-in into the iot edge device and create the '/iotedge' folder (will be used to bind the edgeHub's folder): 
 ```bash
-sudo mkdir /iotedge
-sudo chown 1000 /iotedge
-sudo chmod 700 /iotedge
+sudo mkdir -p /iotedge && sudo chown -R 1000 /iotedge && sudo chmod 700 /iotedge
 ```
 At any time you can check the size consumed by the edgeHub queue with:
 ```bash
