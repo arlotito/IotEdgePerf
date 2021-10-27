@@ -4,8 +4,6 @@ namespace IotEdgePerf.Transmitter.Edge
     using System.Threading.Tasks;
     using System.Text;
 
-    using System.Collections.Generic;
-
     using Newtonsoft.Json;
 
     using Microsoft.Azure.Devices.Client;
@@ -17,21 +15,12 @@ namespace IotEdgePerf.Transmitter.Edge
     using Serilog.Events;
 
     using IotEdgePerf.Transmitter;
-    using IotEdgePerf.Transmitter.ConfigData;
-    using IotEdgePerf.Transmitter.Commands;
-    
+    using IotEdgePerf.Shared;
+
     class Program
     {
-        static ModuleClient _ioTHubModuleClient;
-        static string _moduleOutput = "output1";
-
-        static string _deviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
-        static string _iotHubHostname = Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME");
-        static LoggingLevelSwitch _logLevelSwitch = new LoggingLevelSwitch();
-
-        static TransmitterLogic _transmitter;
         
-        static TwinCollection _twin;
+        static LoggingLevelSwitch _logLevelSwitch = new LoggingLevelSwitch();
 
         static void GetLogLevelFromEnv()
         {
@@ -70,99 +59,47 @@ namespace IotEdgePerf.Transmitter.Edge
                 //.WriteTo.File("logs/myapp.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
             
-            Init().Wait();
+            TransmitterLogic transmitter = await Init();
             
             while (true)
             {
-                await _transmitter.SendAsync();
+                await transmitter.TransmitterLoopAsync();
             }
         }
-
-        
 
         /// <summary>
         /// Initializes the ModuleClient and sets up the callback to receive
         /// messages containing temperature information
         /// </summary>
-        static async Task Init()
+        static async Task<TransmitterLogic> Init()
         {
             MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             ITransportSettings[] settings = { mqttSetting };
+            ModuleClient ioTHubModuleClient;
+            string moduleOutput = "output1";
 
             // Open a connection to the Edge runtime
-            _ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
-            await _ioTHubModuleClient.OpenAsync();
+            ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            await ioTHubModuleClient.OpenAsync();
 
-            // Read module twin
-            var moduleTwin = await _ioTHubModuleClient.GetTwinAsync();
-            await OnDesiredPropertiesUpdate(moduleTwin.Properties.Desired, _transmitter);
-            
             Log.Information("IoT Hub module client initialized.");
-            Log.Information($"Device id: '{_deviceId}'");
-            Log.Information($"IoT HUB: '{_iotHubHostname}'");
+            Log.Information($"Device id: '{Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID")}'");
+            Log.Information($"IoT HUB: '{Environment.GetEnvironmentVariable("IOTEDGE_IOTHUBHOSTNAME")}'");
 
             // applies initial configuration from twins
-            var transmitterConfig = TransmitterConfigData.GetFromObject(_twin["config"]);
-            _transmitter = new TransmitterLogic(transmitterConfig);
-
-            // transmitter events handlers
-            _transmitter.SendMessage         += SdkSendMessage;
-            _transmitter.SendMessageBatch    += null;
-            _transmitter.CreateMessage       += CreateMessage;
+            var moduleTwin = await ioTHubModuleClient.GetTwinAsync();
+            
+            TransmitterLogic transmitter = new TransmitterLogic(
+                TransmitterConfigData.GetFromObject(moduleTwin.Properties.Desired["config"]),
+                new Transport.Sdk(ioTHubModuleClient, moduleOutput),
+                new MessageProvider.RandomMessage()
+            );
 
             // twin and dm handlers
-            await _ioTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, _transmitter);
-            await _ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, _transmitter);
-        }
+            await ioTHubModuleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdate, transmitter);
+            await ioTHubModuleClient.SetMethodHandlerAsync("Start", OnStartDm, transmitter);
 
-        
-
-        private async static Task SdkSendMessage(string message)
-        {
-            Message azIotMessage = new Message(Encoding.ASCII.GetBytes(message));
-            await _ioTHubModuleClient.SendEventAsync(_moduleOutput, azIotMessage);
-        }
-
-        private async static Task SdkSendMessageBatch(string[] messageBatch)
-        {
-            List<Message> azIotMessageBatch = new List<Message>();
-
-            foreach (var message in messageBatch)
-            {
-                azIotMessageBatch.Add(new Message(Encoding.ASCII.GetBytes(message)));
-            }
-
-            await _ioTHubModuleClient.SendEventBatchAsync(_moduleOutput, azIotMessageBatch);
-        }
-
-        private static object CreateMessage(int length)
-        {
-            var applicationObject = new
-            {
-                payload = RandomString(length)
-            };
-
-            return applicationObject;
-        }
-
-        /// <summary>
-        /// Creates a string of specified length with random chars 
-        /// (from "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") 
-        /// </summary>
-        /// <param name="length">Number of chars</param>
-        /// <returns>the string</returns>
-        private static String RandomString(int length)
-        {
-            var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            var stringChars = new char[length];
-            var random = new Random();
-
-            for (int i = 0; i < length; i++)
-            {
-                stringChars[i] = chars[random.Next(chars.Length)];
-            }
-
-            return new String(stringChars);
+            return transmitter;
         }
 
         private static Task<MethodResponse> OnStartDm(MethodRequest methodRequest, object userContext)
@@ -184,13 +121,10 @@ namespace IotEdgePerf.Transmitter.Edge
 
         static Task OnDesiredPropertiesUpdate(TwinCollection desiredProperties, object userContext)
         {
-            TransmitterLogic transmitter = (TransmitterLogic)userContext;
-
             try
             {
                 Log.Debug("Desired property change:\n{0}", JsonConvert.SerializeObject(desiredProperties));
-                _twin = desiredProperties;
-
+                TransmitterLogic transmitter = (TransmitterLogic)userContext;
                 transmitter.ApplyConfiguration(TransmitterConfigData.GetFromObject(desiredProperties["config"]));
             }
 

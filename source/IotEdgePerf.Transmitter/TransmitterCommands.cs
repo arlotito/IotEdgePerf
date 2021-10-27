@@ -1,7 +1,7 @@
-namespace IotEdgePerf.Transmitter.Commands
+namespace IotEdgePerf.Transmitter
 {
     using System;
-    using IotEdgePerf.Transmitter.ConfigData;
+    using IotEdgePerf.Shared;
     
     public class TransmitterStartCommand
     {

@@ -11,29 +11,29 @@ namespace IotEdgePerf.Transmitter
 
     using IotEdgePerf.Shared;
     using IotEdgePerf.Profiler;
-    using IotEdgePerf.Transmitter.ConfigData;
-
-    public delegate Task SendMessageEventHandler(string message);
-    public delegate Task SendMessageBatchEventHandler(List<string> messageBatch);
-    public delegate object CreateMessageEventHandler(int length);
-
+        
     public partial class TransmitterLogic
     {
-        public event SendMessageEventHandler SendMessage; 
-        public event SendMessageBatchEventHandler SendMessageBatch;
-        public event CreateMessageEventHandler CreateMessage;
-
         TransmitterConfigData _config;
 
         Guid _sessionId;
 
-        readonly AtomicBoolean _startRequested = new AtomicBoolean(false);
-        readonly AtomicBoolean _stopRequested = new AtomicBoolean(false);
+        readonly AtomicBoolean _startRequest = new AtomicBoolean(false);
+        readonly AtomicBoolean _stopRequest = new AtomicBoolean(false);
+        private ITransmitterTransport _handlers; 
+        private ITransmitterMessageProvider _messageProvider; 
 
-        public TransmitterLogic(TransmitterConfigData config)
+        public TransmitterLogic(
+            TransmitterConfigData       config,
+            ITransmitterTransport       transportHandlers,
+            ITransmitterMessageProvider messageProvider
+            )
         {
-            this._startRequested.Set(false);
+            this._startRequest.Set(false);
             this.ApplyConfiguration(config);
+
+            this._handlers=transportHandlers;
+            this._messageProvider=messageProvider;
         }
 
         public void Restart(Guid runId)
@@ -41,17 +41,17 @@ namespace IotEdgePerf.Transmitter
             Log.Information($"started with id={runId.ToString()}.");
             this._sessionId = runId;
 
-            //stop a the ongoing transmission (if any)
+            //stop the transmission (if any)
             Stop();
 
             //enables the transmitter
-            this._startRequested.Set(true);
+            this._startRequest.Set(true);
         }
 
-        public void Stop()
+        void Stop()
         {
             Log.Information("stop requested.");
-            this._stopRequested.Set(true); //stops transmission
+            this._stopRequest.Set(true); //stops transmission
         }
 
         public void ApplyConfiguration(TransmitterConfigData config)
@@ -66,18 +66,18 @@ namespace IotEdgePerf.Transmitter
                 this.Stop();
         }
 
-        public async Task SendAsync()
+        public async Task TransmitterLoopAsync()
         {
             double desiredTransmissionInterval;
 
-            if (!this._startRequested)
+            if (!this._startRequest)
                 return; //no transmission requested yet. nothing to do
             else
-                this._startRequested.Set(false);
+                this._startRequest.Set(false);
 
             // clear any pending request
-            if (this._stopRequested)
-                this._stopRequested.Set(false);
+            if (this._stopRequest)
+                this._stopRequest.Set(false);
 
             // transmitter is enabled. Let's start.
 
@@ -108,7 +108,7 @@ namespace IotEdgePerf.Transmitter
                 // MESSAGE loop (in a burst we have 'this._config.burstLength' messages)
                 for (int messageIndex = 0; messageIndex < this._config.burstLength; messageIndex++)
                 {
-                    if (this._stopRequested)
+                    if (this._stopRequest)
                     {
                         //stops transmission
                         Log.Information("stopped.");
@@ -132,7 +132,7 @@ namespace IotEdgePerf.Transmitter
                         //The resulting length must be equal to 'this._config.payloadLength'
                         //                                                     {"      - p -                    ": - <perfMessage> -          , - <object> }
                         int deltaPayloadLength = this._config.payloadLength - (2 + perfMessage.KeyName.Length + 2 + perfMessage.Json.Length + 1 + 1); 
-                        object applicationObject = this.CreateMessage?.Invoke(deltaPayloadLength > 0 ? deltaPayloadLength : 0);
+                        object applicationObject = this._messageProvider.GetMessage(deltaPayloadLength > 0 ? deltaPayloadLength : 0);
 
                         // adds the profiling telemetry data to the application message
                         string mergedMessageJson = perfMessage.AddTo(applicationObject);
@@ -145,9 +145,9 @@ namespace IotEdgePerf.Transmitter
                     // sends the message
                     profiler.MessageTransmissionStart();
                     if (messageBatch.Count == 1)
-                        await this.SendMessage?.Invoke(messageBatch[0]);
+                        await this._handlers.SendMessageHandler(messageBatch[0]);
                     else
-                        await this.SendMessageBatch?.Invoke(messageBatch);
+                        await this._handlers.SendMessageBatchHandler(messageBatch);
                     profiler.MessageTransmissionCompleted();
 
                     // waits to achieve desired target rate
