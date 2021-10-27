@@ -4,7 +4,8 @@ namespace IotEdgePerf.Service
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices;
     using System.Threading.Tasks;
-    using IotEdgePerf.Transmitter.ConfigData;
+    using IotEdgePerf.Shared;
+    using IotEdgePerf.Service;
     
     public class IotEdgePerfService
     {
