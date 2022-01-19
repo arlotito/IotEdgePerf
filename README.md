@@ -30,8 +30,8 @@ dotnet run -- --payload-length=2048 --burst-length=10000 target-rate=500
 Pre-requisites:
 * a TEST device (VM or real HW) provisioned with IoT Edge 1.1/1.2
 * a linux DEV machine 
-* IoT HUB, ASA job, event hub
-* optional: log analytics workspace
+* Azure IoT Hub, Azure Stream Analytics job, Azure Event Hubs namespace with an Event Hub
+* optional: log analytics workspace for logging edge metrics to the cloud
 
 ## Prep the IoT Edge
 Log-in into the iot edge device and create the '/iotedge' folder (will be used to bind the edgeHub's folder): 
@@ -45,28 +45,41 @@ du -hd1 /iotedge
 
 ## Execute the tests
 
-### Deploy the transmitter module (without metrics-collector) to the Device Under Test (DUT)
+The performance tests can be done with the .NET Console app, which requires .NET 5.
+The app has two modes:
+- `deploy` for deploying Azure IoT Edge modules on the pre-provisioned edge.
+- `run` mode for running multiple iterations of the tests
 
-```bash
-./deploy-transmitter.sh -n myIotHub \
-  -d myEdgeDevice \
-  -i arlotito/iotedgeperf-transmitter:0.6.0 \
-  -b 200                                       
+### Deploy the transmitter module (without metrics-collector) to the pre-provisioned Edge Device Under Test (DUT)
+Deploying the modules to your IoT Edge only needs to be done once, afterwards you can run the performance test multiple times without needing to redeploy the Edge modules.
+
 ```
+dotnet run -p ./source/IotEdgePerf.ConsoleApp -- deploy  --device-id="myedgedeviceid" --image-uri "arlotito/iotedgeperf-transmitter:0.6.0" -b 200
+```
+
 The parameter "-b 200" sets ["MaxUpstreamBatchSize"](https://github.com/Azure/iotedge/blob/master/doc/EnvironmentVariables.md) to 200. 
 Change it to fit your needs.
 
 ### Deploy the transmitter module with metrics-collector to the DUT
-```bash
-./deploy-transmitter.sh -n myIotHub \
-  -d myEdgeDevice \
-  -i arlotito/iotedgeperf-transmitter:0.6.0 \
-  -b 200 \
-  -m -w myLogAnalyticsWsName -g myLogAnalyticsWsResourceGroup -f 2                                     
+In order to deploy the required modules, and additionally add the [Metrics Collector](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-collect-and-transport-metrics?view=iotedge-2020-11&tabs=iothub#metrics-collector-module) module, you need to gather the following settings to pass on to the app:
+- `log-a-workspaceid`: This is the Log Analytics Workspace ID. It's in the form of a GUID.
+- `log-a-iotresourceid`: This is the IoT Hub's Resource ID.
+- `log-a-key`: the log analytics shared key.
+
 ```
-The paramter "-f 2" would set the metrics scraping to 2 seconds. Change it to fit your needs.
+dotnet run -p ./source/IotEdgePerf.ConsoleApp -- deploy \
+ --device-id="myedgedeviceid" \
+--image-uri "arlotito/iotedgeperf-transmitter:0.6.0" \
+--log-a-workspaceid "/subscriptions/[]/resourceGroups/[]/providers/Microsoft.Devices/IotHubs/[]" \
+--log-a-iotresourceid "[]" \
+--log-a-key "[]"
+                                   
+```
+
+
 
 ### Run the Console APP from any machine 
+
 ```bash
 dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
   --ehName="myEventHubName" \
@@ -80,7 +93,7 @@ dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
 ```
 
 And here's the result:
-![](./images/simple-example.png)
+![screnshot of the CLI output](./images/simple-example.png)
 
 To make the command line command shorter, some parameters can laso be passed over via ENV variables:
 ```bash
