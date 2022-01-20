@@ -30,7 +30,7 @@ dotnet run -- --payload-length=2048 --burst-length=10000 target-rate=500
 Pre-requisites:
 * a TEST device (VM or real HW) provisioned with IoT Edge 1.1/1.2
 * a linux DEV machine 
-* Azure IoT Hub, Azure Stream Analytics job, Azure Event Hubs namespace with an Event Hub
+* Azure IoT Hub, Azure Stream Analytics job (see above), Azure Event Hubs
 * optional: log analytics workspace for logging edge metrics to the cloud
 
 ## Prep the IoT Edge
@@ -48,12 +48,12 @@ du -hd1 /iotedge
 The performance tests can be done with the .NET Console app, which requires .NET 5.
 The app has two modes:
 - `deploy` for deploying Azure IoT Edge modules on the pre-provisioned edge.
-- `run` mode for running multiple iterations of the tests
+- `runtest` mode for running multiple iterations of the tests.
 
 ### Deploy the transmitter module (without metrics-collector) to the pre-provisioned Edge Device Under Test (DUT)
 Deploying the modules to your IoT Edge only needs to be done once, afterwards you can run the performance test multiple times without needing to redeploy the Edge modules.
 
-```
+```bash
 dotnet run -p ./source/IotEdgePerf.ConsoleApp -- deploy  --device-id="myedgedeviceid" --image-uri "arlotito/iotedgeperf-transmitter:0.6.0" -b 200
 ```
 
@@ -66,22 +66,20 @@ In order to deploy the required modules, and additionally add the [Metrics Colle
 - `log-a-iotresourceid`: This is the IoT Hub's Resource ID.
 - `log-a-key`: the log analytics shared key.
 
-```
+```bash
 dotnet run -p ./source/IotEdgePerf.ConsoleApp -- deploy \
  --device-id="myedgedeviceid" \
 --image-uri "arlotito/iotedgeperf-transmitter:0.6.0" \
---log-a-workspaceid "/subscriptions/[]/resourceGroups/[]/providers/Microsoft.Devices/IotHubs/[]" \
---log-a-iotresourceid "[]" \
---log-a-key "[]"
+--log-a-workspaceid "/subscriptions/xyz/resourceGroups/xyz/providers/Microsoft.Devices/IotHubs/xyz" \
+--log-a-iotresourceid "xyzguid" \
+--log-a-key "xyzkey"
                                    
 ```
-
-
 
 ### Run the Console APP from any machine 
 
 ```bash
-dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
+dotnet run -p ./source/IotEdgePerf.ConsoleApp -- runtest \
   --ehName="myEventHubName" \
   --eh-conn-string="Endpoint=sb://xyz.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxx" \
   --iot-conn-string="HostName=xxx;SharedAccessKeyName=service;SharedAccessKey=xxx" \
@@ -105,7 +103,7 @@ export IOT_HUB_NAME=__redacted__
 ```
 and then run with:
 ```bash
-dotnet run -p ./source/IotEdgePerf.ConsoleApp -- \
+dotnet run -p ./source/IotEdgePerf.ConsoleApp -- runtest \
   --device-id="myEdgeDevice" \
   --payload-length=1024 \
   --burst-length=10000 \

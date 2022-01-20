@@ -26,7 +26,7 @@ namespace IotEdgePerf.ConsoleApp
 
     }
 
-    [Verb("run")]
+    [Verb("runtest")]
     /// <summary>
     /// Parameters for the application in Run / execute mode
     /// </summary>

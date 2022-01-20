@@ -114,6 +114,13 @@ namespace IotEdgePerf.ConsoleApp
                         {
                             image = transmitterUri,
                             createOptions = "{}"
+                        },
+                        env = new 
+                        {
+                            LOG_LEVEL = new
+                            {
+                                 value = "debug"
+                            }
                         }
                     },
                     IoTEdgeMetricsCollector = new
@@ -167,6 +174,13 @@ namespace IotEdgePerf.ConsoleApp
                         {
                             image = transmitterUri,
                             createOptions = "{}"
+                        },
+                        env = new 
+                        {
+                            LOG_LEVEL = new
+                            {
+                                 value = "debug"
+                            }
                         }
                     }
                 };

@@ -110,7 +110,6 @@ namespace IotEdgePerf.ConsoleApp
             
             _registryManager = RegistryManager.CreateFromConnectionString(_iotHubConnectionString);
 
-
             ConfigurationContent deploymentManifest = EdgeConfigurations.GetBaseConfigurationContent(
                 opts.ImageUri,
                 opts.MaxUpstreamBatchSize,
@@ -120,21 +119,8 @@ namespace IotEdgePerf.ConsoleApp
                 addingLogAnalytics
             );
 
-            //in case deployment is for Metrics collector, add these:
-            if (!string.IsNullOrWhiteSpace(opts.LogAnalyticsWorkspaceId))
-            {
-                var edgeAgent = deploymentManifest.ModulesContent["$edgeAgent"]["properties.desired"];
-                Console.WriteLine(edgeAgent);
-            }
-
-            Console.WriteLine("====TODELETE=================");
-            Console.WriteLine(JsonConvert.SerializeObject(deploymentManifest));
-            Console.WriteLine("======TODELETE===============");
-
-            
             await _registryManager.ApplyConfigurationContentOnDeviceAsync(_deviceId, deploymentManifest);
             Console.WriteLine("Deploy Modules - Applied configuration (deployment manfiest applied)");
-
 
             //restart edgeAgent
             _serviceClient = ServiceClient.CreateFromConnectionString(_iotHubConnectionString);
@@ -228,8 +214,6 @@ namespace IotEdgePerf.ConsoleApp
 
             //===== RUN
             _sessionId = Guid.NewGuid();
-
-            
 
             // start timeout
             SetTimeout(_timeoutInterval, ct);
