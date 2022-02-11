@@ -1,16 +1,36 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using CommandLine;
-using IotEdgePerf.Shared;
 
 namespace IotEdgePerf.ConsoleApp
 {
+
+    internal abstract class BaseOptions
+    {
+         [Option(
+            "iot-conn-string",
+            Required = false,
+            Default = "",
+            HelpText = "The connection string to the iot hub.\nIf you prefer, you can use the env var IOT_CONN_STRING instead.")]
+        public string IotHubConnectionString { get; set; }
+
+         [Option(
+            "device-id",
+            Required = false,
+            Default = "",
+            HelpText = "The device id. \nIf you prefer, you can use the env var DEVICE_ID instead.")]
+        public string DeviceId { get; set; }
+
+
+
+    }
+
+    [Verb("runtest")]
     /// <summary>
-    /// Parameters for the application
+    /// Parameters for the application in Run / execute mode
     /// </summary>
-    internal class Parameters
+    internal class RunOptions: BaseOptions
     {
         [Option(
             'n',
@@ -27,20 +47,7 @@ namespace IotEdgePerf.ConsoleApp
             HelpText = "The connection string to the event hub-compatible endpoint.\nIf you prefer, you can use the env var EH_CONN_STRING instead. Use the Azure portal to get this parameter.")]
         public string EventHubConnectionString { get; set; }
 
-        [Option(
-            "iot-conn-string",
-            Required = false,
-            Default = "",
-            HelpText = "The connection string to the iot hub.\nIf you prefer, you can use the env var IOT_CONN_STRING instead.")]
-        public string IotHubConnectionString { get; set; }
-
-        [Option(
-            "device-id",
-            Required = false,
-            Default = "",
-            HelpText = "The device id. \nIf you prefer, you can use the env var DEVICE_ID instead.")]
-        public string DeviceId { get; set; }
-
+       
         [Option(
             't',
             "timeout",
@@ -123,81 +130,43 @@ namespace IotEdgePerf.ConsoleApp
         public string TestLabel { get; set; }
     }
 
-    partial class Program
+    [Verb("deploy")]
+    internal class DeployOptions: BaseOptions
     {
-        private static void GetConfig(string[] args)
-        {
-            Parameters _parameters = new Parameters();
+        [Option(
+            "image-uri",
+            Required = true,
+            HelpText = "Container Image URI and tag, for example 'arlotito/iotedgeperf-transmitter:0.5.0'")]
+        public string ImageUri { get; set; }
 
-            // Parse application parameters
-            ParserResult<Parameters> result = Parser.Default.ParseArguments<Parameters>(args)
-                .WithParsed(parsedParams =>
-                {
-                    _parameters = parsedParams;
-                })
-                .WithNotParsed(errors =>
-                {
-                    Environment.Exit(1);
-                });
+        [Option(
+            'b', 
+            "batch-max-size",
+            Required = false,
+            Default = 200,
+            HelpText = "(optional) this value will be assigned to edgeHub's MaxUpstreamBatchSize env var.")]
+        public int MaxUpstreamBatchSize { get; set; }
 
-            _eventHubName = Environment.GetEnvironmentVariable("EH_NAME");
-            if (!string.IsNullOrEmpty(_parameters.EventHubName))
-            {
-                _eventHubName = _parameters.EventHubName;
-            }
+        [Option(
+            "log-a-workspaceid",
+            Required = false,
+            HelpText = "(optional) The Log Analytics Workspace ID")]
+        public string LogAnalyticsWorkspaceId { get; set; }
 
-            _eventHubConnectionString = Environment.GetEnvironmentVariable("EH_CONN_STRING");
-            if (!string.IsNullOrEmpty(_parameters.EventHubConnectionString))
-            {
-                _eventHubConnectionString = _parameters.EventHubConnectionString;
-            }
+        [Option(
+            "log-a-iotresourceid",
+            Required = false,
+            HelpText = "(optional but required when adding Log Analytics) The IoT Hub resource ID")]
+        public string LogAnalyticsIoTResourceId { get; set; }
 
-            _iotHubConnectionString = Environment.GetEnvironmentVariable("IOT_CONN_STRING");
-            if (!string.IsNullOrEmpty(_parameters.IotHubConnectionString))
-            {
-                _iotHubConnectionString = _parameters.IotHubConnectionString;
-            }
+        [Option(
+            "log-a-key",
+            Required = false,
+            HelpText = "(required when adding Log Analytics) The shared key for Log Analytics")]
+        public string LogAnalyticsSharedKey { get; set; }
 
-            _deviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
-            if (!string.IsNullOrEmpty(_parameters.DeviceId))
-            {
-                _deviceId = _parameters.DeviceId;
-            }
 
-            // check if EH info is provided
-            if (string.IsNullOrWhiteSpace(_eventHubConnectionString))
-            {
-                Console.WriteLine($"ERROR: _eventHubConnectionString not found.\n\n");
-                Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(result, null, null));
-                Environment.Exit(1);
-            }
-
-            if (string.IsNullOrWhiteSpace(_eventHubName))
-            {
-                Console.WriteLine($"ERROR: _eventHubName not found.\n\n");
-                Console.WriteLine(CommandLine.Text.HelpText.AutoBuild(result, null, null));
-                Environment.Exit(1);
-            }
-
-            double.TryParse(_parameters.Timeout, out _timeoutInterval);
-            _showAsaMessage = _parameters.ShowMsg;
-            _csvFile = _parameters.csvOutputFile;
-            _customLabel = _parameters.TestLabel;
-            
-            _transmitterConfigData = new TransmitterConfigData {
-                autoStart = false,
-                burstLength=_parameters.burstLength,
-                burstWait=_parameters.burstWait,
-                burstNumber=_parameters.burstNumber,
-                targetRate=_parameters.targetRate,
-                payloadLength=_parameters.payloadLength,
-                batchSize=_parameters.batchSize,
-                logMsg=false,
-                logBurst=true,
-                logHist=false,
-                waitBeforeStart=_parameters.waitBeforeStart,
-                rateCalcPeriod=5000
-            };
-        }
     }
+
+   
 }
