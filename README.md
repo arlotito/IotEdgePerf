@@ -1,10 +1,6 @@
-This is still a WORK IN PROGRESS.
-Feel free to contribute!
-
-----------------
-
 # iotEdgePerf
-A framework and a CLI tool to measure throughput and end-to-end latency of an IoT Edge.
+A framework and a CLI tool to measure throughput and end-to-end latency of an IoT Edge inspired by this blog post: https://aka.ms/IotEdgePerf 
+
 Useful for:
 * measuring the rate/throughput at transmitter egress (A) and iot hub ingress (B) along with the A-to-B latency
 * sizing HW (or VM) to meet the target rate/latency or assessing the maximum rate/throughput achievable on a given configuration
